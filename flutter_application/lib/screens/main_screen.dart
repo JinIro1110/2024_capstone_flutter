@@ -9,7 +9,7 @@ import 'package:flutter_application_1/auth/login_logic.dart';
 import 'package:flutter_application_1/screens/3d_model/create_model.dart';
 import 'package:flutter_application_1/screens/middle/closet.dart';
 import 'package:flutter_application_1/screens/shop/mall.dart';
-import 'package:flutter_application_1/screens/record/video.dart';
+import 'package:flutter_application_1/screens/video/video.dart';
 
 class MyHomePage extends StatefulWidget {
   final List<ClosetItem> preloadedItems;
@@ -137,7 +137,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _getScreen(int index) {
     switch (index) {
-      case 0: return const VideoRecorderWidget();
+      case 0: return VideoRecorderWidget();
       case 1:
         return ClosetScreen(
           initialItems: closetItems,
