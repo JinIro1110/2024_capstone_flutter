@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter_application_1/auth/login_logic.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:provider/provider.dart';
 
 class VideoRecorderWidget extends StatefulWidget {
   const VideoRecorderWidget({Key? key}) : super(key: key);
@@ -123,21 +125,38 @@ class _VideoRecorderWidgetState extends State<VideoRecorderWidget> {
 
   Future<void> _uploadVideosToFirebase() async {
     if (_storage == null) return;
+
+    // 로그인된 사용자 정보 가져오기
+    final user = Provider.of<LoginAuth>(context, listen: false).user;
+
+    // 사용자 정보가 없으면 업로드를 중지합니다.
+    if (user == null) {
+      print('사용자가 로그인되어 있지 않습니다.');
+      return;
+    }
+
     setState(() {
       _isUploading = true;
     });
+
     try {
       for (File videoFile in _recordedVideoFiles) {
+        // 각 영상의 파일 이름을 설정합니다.
         String fileName = 'video_${DateTime.now().millisecondsSinceEpoch}.mp4';
-        Reference ref = _storage!.ref().child('videos/$fileName');
+
+        // Firebase Storage 참조에서 'videos' 폴더 내 'user.uid' 폴더에 업로드하도록 경로 설정
+        Reference ref = _storage!.ref().child('videos/${user.uid}/$fileName');
 
         // MIME 타입 설정
         SettableMetadata metadata = SettableMetadata(contentType: 'video/mp4');
 
-        UploadTask uploadTask = ref.putFile(videoFile, metadata); // metadata 추가
+        // 파일 업로드
+        UploadTask uploadTask = ref.putFile(videoFile, metadata);
 
         await uploadTask
             .whenComplete(() => print('Video uploaded to Firebase Storage'));
+
+        // 업로드 후 다운로드 URL을 가져옵니다.
         String downloadUrl = await ref.getDownloadURL();
         print('Download URL: $downloadUrl');
       }
@@ -200,7 +219,8 @@ class _VideoRecorderWidgetState extends State<VideoRecorderWidget> {
             const SizedBox(height: 20.0),
             if (_countdown > 0 && _countdown <= 5)
               Text('$_countdown초 후 녹화 시작',
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold)),
             if (_isRecording)
               const Text('녹화 중...',
                   style: TextStyle(fontSize: 24, color: Colors.red)),

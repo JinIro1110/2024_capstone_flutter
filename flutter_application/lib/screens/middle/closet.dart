@@ -126,6 +126,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
         'imageUrl': downloadUrl,
         'style': metadata.style,
         'size': metadata.size,
+        'part': metadata.part,
         'timestamp': FieldValue.serverTimestamp(),
       });
 
@@ -254,17 +255,13 @@ class MetadataInputDialog extends StatefulWidget {
 }
 
 class _MetadataInputDialogState extends State<MetadataInputDialog> {
-  String selectedStyle = 'Casual';
+  String selectedStyle = '캐쥬얼';
   int selectedSize = 90;
+  String selectedPart = "상의";
 
-  final List<String> styles = [
-    'Casual',
-    'Formal',
-    'Sports',
-    'Party',
-    'Business'
-  ];
+  final List<String> styles = ['캐쥬얼', '포멀', '스포츠', '스트릿', '비즈니스'];
   final List<int> sizes = List.generate(9, (index) => 80 + (index * 5));
+  final List<String> parts = ['상의', '하의'];
 
   @override
   Widget build(BuildContext context) {
@@ -275,7 +272,7 @@ class _MetadataInputDialogState extends State<MetadataInputDialog> {
         children: [
           DropdownButtonFormField<String>(
             value: selectedStyle,
-            decoration: const InputDecoration(labelText: 'Style'),
+            decoration: const InputDecoration(labelText: '스타일'),
             items: styles.map((style) {
               return DropdownMenuItem(
                 value: style,
@@ -289,7 +286,7 @@ class _MetadataInputDialogState extends State<MetadataInputDialog> {
           const SizedBox(height: 16),
           DropdownButtonFormField<int>(
             value: selectedSize,
-            decoration: const InputDecoration(labelText: 'Size'),
+            decoration: const InputDecoration(labelText: '사이즈'),
             items: sizes.map((size) {
               return DropdownMenuItem(
                 value: size,
@@ -298,6 +295,20 @@ class _MetadataInputDialogState extends State<MetadataInputDialog> {
             }).toList(),
             onChanged: (value) {
               setState(() => selectedSize = value!);
+            },
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            value: selectedPart, // 올바른 값으로 변경
+            decoration: const InputDecoration(labelText: '상하의'),
+            items: parts.map((part) {
+              return DropdownMenuItem(
+                value: part,
+                child: Text(part),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() => selectedPart = value!); // selectedPart에 올바르게 할당
             },
           ),
         ],
@@ -311,7 +322,8 @@ class _MetadataInputDialogState extends State<MetadataInputDialog> {
           onPressed: () {
             Navigator.pop(
               context,
-              ClothingMetadata(style: selectedStyle, size: selectedSize),
+              ClothingMetadata(
+                  style: selectedStyle, size: selectedSize, part: selectedPart),
             );
           },
           child: const Text('Save'),

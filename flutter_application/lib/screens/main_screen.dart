@@ -2,7 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/data/data.dart';
 import 'package:flutter_application_1/models/ClosetItem.dart';
-import 'package:flutter_application_1/screens/recommend/preferences.dart';
+import 'package:flutter_application_1/models/Menu.dart';  // 수정된 부분
+import 'package:flutter_application_1/screens/recommend/style_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_application_1/auth/login_logic.dart';
 import 'package:flutter_application_1/screens/3d_model/create_model.dart';
@@ -157,15 +158,34 @@ class _MyHomePageState extends State<MyHomePage> {
                 leading: const Icon(Icons.style, color: darkGrey),
                 title: const Text('내 취향', style: TextStyle(color: darkGrey)),
                 onTap: () async {
-                  Navigator.pop(context); // Close drawer
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => StylePreferencesScreen()),
-                  );
-                  if (result != null) {
-                    // Handle the returned preferences
-                    print('사용자 취향이 업데이트되었습니다');
-                    // Preferences 업데이트 로직 추가
+                  Navigator.pop(context); // 드로어 닫기
+                  try {
+                    final List<String>? selectedStyles = await Navigator.push<List<String>>(
+                      context,
+                      MaterialPageRoute(builder: (context) => const StyleScreen()),
+                    );
+                    
+                    if (selectedStyles != null && selectedStyles.isNotEmpty) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('선호 스타일이 업데이트되었습니다'),
+                            backgroundColor: darkGrey,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('스타일 업데이트 중 오류가 발생했습니다'),
+                          backgroundColor: darkGrey,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
                   }
                 },
               ),
@@ -206,31 +226,12 @@ class _MyHomePageState extends State<MyHomePage> {
         color: Colors.teal.shade50,
         child: isLoading ? const Center(child: CircularProgressIndicator()) : _getScreen(_selectedIndex),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.videocam),
-            label: 'Record',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Middle',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.create),
-            label: 'Create Model',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shop),
-            label: 'Mall',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: lightPurple,
-        unselectedItemColor: darkGrey,
-        backgroundColor: lightGrey,
-        type: BottomNavigationBarType.fixed,
-        onTap: _onItemTapped,
+      bottomNavigationBar: BottomNavigation(
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onItemTapped,
+        lightPurple: lightPurple,
+        darkGrey: darkGrey,
+        lightGrey: lightGrey,
       ),
     );
   }
