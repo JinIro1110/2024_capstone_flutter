@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/data/data.dart';
 import 'package:flutter_application_1/models/ClosetItem.dart';
-import 'package:flutter_application_1/models/Menu.dart';  // 수정된 부분
+import 'package:flutter_application_1/models/Menu.dart';
 import 'package:flutter_application_1/screens/recommend/style_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_application_1/auth/login_logic.dart';
@@ -26,6 +26,12 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  // Constants
+  static const Color darkGrey = Color.fromARGB(224, 86, 98, 112);
+  static const Color lightPurple = Color.fromARGB(224, 165, 147, 224);
+  static const Color lightGrey = Color.fromARGB(224, 224, 227, 218);
+
+  // State variables
   int _selectedIndex = 1;
   final _closetDataService = ClosetDataService();
   List<ClosetItem> closetItems = [];
@@ -39,43 +45,107 @@ class _MyHomePageState extends State<MyHomePage> {
     lastDocument = widget.preloadedLastDocument;
   }
 
-  // Define color constants
-  static const Color darkGrey = Color.fromARGB(224, 86, 98, 112);
-  static const Color lightPurple = Color.fromARGB(224, 165, 147, 224);
-  static const Color lightGrey = Color.fromARGB(224, 224, 227, 218);
+  // Helper functions
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: darkGrey),
+      title: Text(title, style: const TextStyle(color: darkGrey)),
+      onTap: onTap,
+    );
+  }
 
-  Future<void> _preloadClosetData() async {
-    final loginAuth = Provider.of<LoginAuth>(context, listen: false);
-    final user = loginAuth.user;
-    if (user == null) return;
+  Widget _buildDrawerHeader() {
+    return const DrawerHeader(
+      decoration: BoxDecoration(color: lightPurple),
+      child: Text(
+        '메뉴',
+        style: TextStyle(color: darkGrey, fontSize: 24),
+      ),
+    );
+  }
 
-    setState(() => isLoading = true);
+  List<Widget> _buildDrawerItems(BuildContext context) {
+    return [
+      _buildDrawerHeader(),
+      _buildDrawerItem(
+        icon: Icons.home,
+        title: '홈',
+        onTap: () {
+          Navigator.pop(context);
+          _onItemTapped(1);
+        },
+      ),
+      _buildDrawerItem(
+        icon: Icons.person,
+        title: '프로필',
+        onTap: () => Navigator.pop(context),
+      ),
+      _buildDrawerItem(
+        icon: Icons.style,
+        title: '내 취향',
+        onTap: () => _handleStyleSelection(context),
+      ),
+      _buildDrawerItem(
+        icon: Icons.settings,
+        title: '설정',
+        onTap: () => _showDevelopmentSnackBar(context, '이 기능은 아직 개발 중입니다.'),
+      ),
+      _buildDrawerItem(
+        icon: Icons.help,
+        title: '도움말',
+        onTap: () => Navigator.pop(context),
+      ),
+      _buildDrawerItem(
+        icon: Icons.info,
+        title: '앱 정보',
+        onTap: () => Navigator.pop(context),
+      ),
+    ];
+  }
 
-    final result = await _closetDataService.loadInitialClosetData(user.uid);
-    
-    if (mounted) {
-      setState(() {
-        closetItems = result['items'];
-        lastDocument = result['lastDocument'];
-        isLoading = false;
-      });
+  Future<void> _handleStyleSelection(BuildContext context) async {
+    Navigator.pop(context);
+    try {
+      final List<String>? selectedStyles = await Navigator.push<List<String>>(
+        context,
+        MaterialPageRoute(builder: (context) => const StyleScreen()),
+      );
+      
+      if (selectedStyles != null && selectedStyles.isNotEmpty && mounted) {
+        _showDevelopmentSnackBar(context, '선호 스타일이 업데이트되었습니다');
+      }
+    } catch (e) {
+      if (mounted) {
+        _showDevelopmentSnackBar(context, '스타일 업데이트 중 오류가 발생했습니다');
+      }
     }
+  }
+
+  void _showDevelopmentSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: darkGrey,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   Widget _getScreen(int index) {
     switch (index) {
-      case 0:
-        return const VideoRecorderWidget();
+      case 0: return const VideoRecorderWidget();
       case 1:
         return ClosetScreen(
           initialItems: closetItems,
           initialLastDocument: lastDocument,
           isInitialLoading: isLoading,
         );
-      case 2:
-        return CreateModelScreen();
-      case 3:
-        return MallScreen();
+      case 2: return CreateModelScreen();
+      case 3: return MallScreen();
       default:
         return ClosetScreen(
           initialItems: closetItems,
@@ -85,15 +155,24 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+  Future<void> _handleSignOut(LoginAuth loginAuth, BuildContext context) async {
+    try {
+      await loginAuth.signOut();
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      }
+    } catch (e) {
+      print('Sign out error: $e');
+      if (mounted) {
+        _showDevelopmentSnackBar(context, '로그아웃 중 오류가 발생했습니다. 잠시 후 다시 시도하세요.');
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final loginAuth = Provider.of<LoginAuth>(context, listen: false);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Main Screen', style: TextStyle(color: lightGrey)),
@@ -102,21 +181,7 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.exit_to_app),
-            onPressed: () async {
-              try {
-                await loginAuth.signOut();
-                Navigator.of(context)
-                    .pushNamedAndRemoveUntil('/login', (route) => false);
-              } catch (e) {
-                print('Sign out error: $e');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('로그아웃 중 오류가 발생했습니다. 잠시 후 다시 시도하세요.'),
-                    backgroundColor: darkGrey,
-                  ),
-                );
-              }
-            },
+            onPressed: () => _handleSignOut(loginAuth, context),
           ),
         ],
       ),
@@ -125,100 +190,7 @@ class _MyHomePageState extends State<MyHomePage> {
           color: lightGrey,
           child: ListView(
             padding: EdgeInsets.zero,
-            children: <Widget>[
-              const DrawerHeader(
-                decoration: BoxDecoration(
-                  color: lightPurple,
-                ),
-                child: Text(
-                  '메뉴',
-                  style: TextStyle(
-                    color: darkGrey,
-                    fontSize: 24,
-                  ),
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.home, color: darkGrey),
-                title: const Text('홈', style: TextStyle(color: darkGrey)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _onItemTapped(1);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.person, color: darkGrey),
-                title: const Text('프로필', style: TextStyle(color: darkGrey)),
-                onTap: () {
-                  Navigator.pop(context);
-                  // 프로필 화면으로 이동하는 로직 추가
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.style, color: darkGrey),
-                title: const Text('내 취향', style: TextStyle(color: darkGrey)),
-                onTap: () async {
-                  Navigator.pop(context); // 드로어 닫기
-                  try {
-                    final List<String>? selectedStyles = await Navigator.push<List<String>>(
-                      context,
-                      MaterialPageRoute(builder: (context) => const StyleScreen()),
-                    );
-                    
-                    if (selectedStyles != null && selectedStyles.isNotEmpty) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('선호 스타일이 업데이트되었습니다'),
-                            backgroundColor: darkGrey,
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      }
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('스타일 업데이트 중 오류가 발생했습니다'),
-                          backgroundColor: darkGrey,
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.settings, color: darkGrey),
-                title: const Text('설정', style: TextStyle(color: darkGrey)),
-                onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('이 기능은 아직 개발 중입니다.'),
-                      backgroundColor: darkGrey,
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.help, color: darkGrey),
-                title: const Text('도움말', style: TextStyle(color: darkGrey)),
-                onTap: () {
-                  Navigator.pop(context);
-                  // 도움말 화면으로 이동하는 로직 추가
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.info, color: darkGrey),
-                title: const Text('앱 정보', style: TextStyle(color: darkGrey)),
-                onTap: () {
-                  Navigator.pop(context);
-                  // 앱 정보 화면으로 이동하는 로직 추가
-                },
-              ),
-            ],
+            children: _buildDrawerItems(context),
           ),
         ),
       ),
@@ -234,5 +206,9 @@ class _MyHomePageState extends State<MyHomePage> {
         lightGrey: lightGrey,
       ),
     );
+  }
+
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
   }
 }
