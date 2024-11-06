@@ -1,0 +1,81 @@
+# Flutter/Dart 관련 파일 및 디렉터리
+.dart_tool/
+.packages
+build/
+pubspec.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+.flutter-versions
+.idea/
+.vscode/
+*.iml
+*.lock
+
+# 환경 변수와 민감한 정보 파일
+.env*
+firebase.json
+google-services.json
+ios/Runner/GoogleService-Info.plist
+android/app/google-services.json
+**/debug.keystore
+**/*.jks
+**/*.p8
+**/*.p12
+**/*.key
+**/*.mobileprovision
+
+# Android 관련 파일 및 디렉터리
+android/.gradle/
+android/captures/
+android/local.properties
+android/app/build/
+
+# iOS 관련 파일 및 디렉터리
+ios/Pods/
+ios/Runner.xcworkspace
+ios/.symlinks/
+ios/Flutter/
+ios/Podfile.lock
+ios/build/
+ios/Runner/Info.plist
+
+# macOS 관련 파일 및 디렉터리
+macos/Pods/
+macos/Flutter/ephemeral/
+macos/Podfile.lock
+macos/build/
+
+# Windows 관련 파일 및 디렉터리
+windows/Flutter/ephemeral/
+windows/build/
+
+# Linux 관련 파일 및 디렉터리
+linux/Flutter/ephemeral/
+linux/build/
+
+# Web 관련 파일 및 디렉터리
+web/Flutter/ephemeral/
+web/build/
+
+# Firebase 로그 파일
+firebase-debug.log
+
+# 임시 파일 및 시스템 파일
+*.tmp
+*.temp
+*.swp
+*.cache
+*.log
+*.class
+.DS_Store
+*.lock
+
+# IDE 설정 파일
+*.iml
+.idea/
+.vscode/
+.history/
+
+# Android 빌드 출력물 제외
+*.apk
+*.aab
