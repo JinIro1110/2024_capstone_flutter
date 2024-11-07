@@ -72,12 +72,14 @@ class ClosetDataService {
     required String imageUrl,
     required String style,
     required int size,
+    required String part,
   }) async {
     try {
       final docRef = await _firestore.collection('closet/$userId/images').add({
         'imageUrl': imageUrl,
         'style': style,
         'size': size,
+        'part': part,
         'timestamp': FieldValue.serverTimestamp(),
       });
 

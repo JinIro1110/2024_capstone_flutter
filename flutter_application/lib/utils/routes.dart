@@ -9,6 +9,6 @@ Map<String, WidgetBuilder> routes = {
   '/login': (context) => const Login(),
   '/signup': (context) => const SignUp1(),
   '/home': (context) => const MyHomePage(),
-  '/findId': (context) => FindId(),
-  '/findPassword': (context) => FindPassword()
+  '/findId': (context) => const FindId(),
+  '/findPassword': (context) => const FindPassword()
 };

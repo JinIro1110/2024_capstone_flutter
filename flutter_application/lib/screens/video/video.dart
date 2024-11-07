@@ -232,10 +232,10 @@ class _VideoRecorderWidgetState extends State<VideoRecorderWidget> {
         child: Stack(
           children: [
             // 카메라 프리뷰
-            Container(
+            SizedBox(
               width: double.infinity,
-              child: CameraPreview(_controller!),
               height: MediaQuery.of(context).size.height,
+              child: CameraPreview(_controller!),
             ),
             // 텍스트 및 버튼
             Positioned(

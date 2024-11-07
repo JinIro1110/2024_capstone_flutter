@@ -25,8 +25,8 @@ class _ColorScreenState extends State<ColorScreen> {
     ColorOption('블랙', Colors.black),
     ColorOption('화이트', Colors.white),
     ColorOption('그레이', Colors.grey),
-    ColorOption('베이지', Color(0xFFE8D6B3)),
-    ColorOption('네이비', Color(0xFF000080)),
+    ColorOption('베이지', const Color(0xFFE8D6B3)),
+    ColorOption('네이비', const Color(0xFF000080)),
   ];
 
   String? selectedColor;

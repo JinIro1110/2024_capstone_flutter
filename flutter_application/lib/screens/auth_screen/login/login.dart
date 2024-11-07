@@ -219,12 +219,12 @@ class _LoginState extends State<Login> {
       children: [
         TextButton(
           onPressed: () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => FindId())),
+              context, MaterialPageRoute(builder: (_) => const FindId())),
           child: const Text('아이디 찾기'),
         ),
         TextButton(
           onPressed: () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => FindPassword())),
+              context, MaterialPageRoute(builder: (_) => const FindPassword())),
           child: const Text('비밀번호 찾기'),
         ),
       ],

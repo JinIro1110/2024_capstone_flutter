@@ -3,8 +3,6 @@ import 'package:flutter_application_1/screens/auth_screen/login/login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_1/screens/main_screen.dart';
 import 'package:flutter_application_1/data/data.dart';
-import 'package:provider/provider.dart';
-import 'package:flutter_application_1/auth/login_logic.dart';
 
 class Splash extends StatefulWidget {
   const Splash({Key? key}) : super(key: key);

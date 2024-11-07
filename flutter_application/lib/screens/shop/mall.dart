@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_application_1/models/MallItem.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MallScreen extends StatefulWidget {
@@ -128,12 +129,6 @@ class _MallScreenState extends State<MallScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Shopping Mall',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color.fromARGB(224, 165, 147, 224),
-        elevation: 0,
-      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -146,13 +141,91 @@ class _MallScreenState extends State<MallScreen> {
           children: [
             _buildCategoryFilters(),
             Expanded(
-              child: items.isEmpty && !isLoading
-                  ? const Center(child: Text('No items available'))
-                  : _buildGridView(),
+              child: _buildContent(),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildContent() {
+    // 초기 로딩 상태
+    if (items.isEmpty && isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Color.fromARGB(224, 165, 147, 224),
+              ),
+            ),
+            SizedBox(height: 16),
+            Text(
+              '상품을 불러오는 중입니다...',
+              style: TextStyle(
+                color: Color.fromARGB(224, 165, 147, 224),
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 데이터가 없는 상태
+    if (items.isEmpty && !isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.shopping_bag_outlined,
+              size: 48,
+              color: Color.fromARGB(224, 165, 147, 224),
+            ),
+            SizedBox(height: 16),
+            Text(
+              '상품이 없습니다',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 데이터가 있는 상태 - 기존 GridView 반환
+    return GridView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(12.0),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: items.length + (isLoading ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index < items.length) {
+          return _buildItemCard(items[index]);
+        } else {
+          // 로딩 표시를 위한 한 아이템 추가
+          return const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Color.fromARGB(224, 165, 147, 224),
+                ),
+              ),
+            ),
+          );
+        }
+      },
     );
   }
 
@@ -161,7 +234,7 @@ class _MallScreenState extends State<MallScreen> {
       height: 50,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         children: [
           _buildFilterChip('전체'),
           _buildFilterChip('상의'),
@@ -193,7 +266,7 @@ class _MallScreenState extends State<MallScreen> {
       padding: const EdgeInsets.all(12.0), // 패딩 줄임
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.75, // 비율 조정
+        childAspectRatio: 1.5, // 비율 조정
         crossAxisSpacing: 12, // 간격 줄임
         mainAxisSpacing: 12, // 간격 줄임
       ),
@@ -218,48 +291,46 @@ class _MallScreenState extends State<MallScreen> {
     final formattedPrice = '${int.parse(item.price).toLocaleString()}원';
 
     return Card(
-      elevation: 2,
+      elevation: 5,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: SizedBox(
-        height: double.infinity,
+        height: 500, // 여기에 아이템의 세로 크기를 설정
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 이미지 컨테이너
             Expanded(
-              flex: 5,
+              flex: 7,
               child: Container(
                 color: Colors.grey[100],
                 child: Stack(
                   children: [
-                    // 이미지를 중앙에 배치하고 비율 유지
                     Center(
-                      child: AspectRatio(
-                        aspectRatio: 0.9, // 비율을 약간 세로로 길게 수정
-                        child: Padding(
-                          padding: const EdgeInsets.all(4), // 패딩을 줄여서 이미지 크기 확보
-                          child: CachedNetworkImage(
-                            imageUrl: item.imageUrl,
-                            fit: BoxFit.contain,
-                            placeholder: (context, url) => const Center(
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Color.fromARGB(224, 165, 147, 224),
-                                  ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4), // 패딩을 줄여서 이미지 크기 확보
+                        child: CachedNetworkImage(
+                          imageUrl: item.imageUrl,
+                          fit: BoxFit.fitHeight, // BoxFit.contain으로 수정
+                          width: double.infinity,
+                          height: double.infinity,
+                          placeholder: (context, url) => const Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color.fromARGB(224, 165, 147, 224),
                                 ),
                               ),
                             ),
-                            errorWidget: (context, url, error) => const Center(
-                              child: Icon(Icons.error,
-                                  color: Colors.red, size: 20),
-                            ),
+                          ),
+                          errorWidget: (context, url, error) => const Center(
+                            child:
+                                Icon(Icons.error, color: Colors.red, size: 20),
                           ),
                         ),
                       ),
@@ -294,8 +365,8 @@ class _MallScreenState extends State<MallScreen> {
             ),
             // 상품 정보 컨테이너
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 6), // 수직 패딩 줄임
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 8, vertical: 6), // 수직 패딩 줄임
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -334,7 +405,8 @@ class _MallScreenState extends State<MallScreen> {
                     child: ElevatedButton(
                       onPressed: () => _launchURL(item.link),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(224, 165, 147, 224),
+                        backgroundColor:
+                            const Color.fromARGB(224, 165, 147, 224),
                         foregroundColor: Colors.white,
                         padding: EdgeInsets.zero,
                         shape: RoundedRectangleBorder(
@@ -370,7 +442,7 @@ class _MallScreenState extends State<MallScreen> {
         ),
         minimumSize: const Size(double.infinity, 36),
       ),
-      child: Text('구매하기'),
+      child: const Text('구매하기'),
     );
   }
 
@@ -383,30 +455,6 @@ class _MallScreenState extends State<MallScreen> {
       );
     }
   }
-}
-
-class MallItem {
-  final String code;
-  final String name;
-  final String price;
-  final String brand;
-  final String category;
-  final String mainCategory;
-  final String subCategory;
-  final String imageUrl;
-  final String link;
-
-  MallItem({
-    required this.code,
-    required this.name,
-    required this.price,
-    required this.brand,
-    required this.category,
-    required this.mainCategory,
-    required this.subCategory,
-    required this.imageUrl,
-    required this.link,
-  });
 }
 
 extension NumberFormat on int {

@@ -7,7 +7,7 @@ import 'package:flutter_application_1/screens/recommend/style_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_application_1/auth/login_logic.dart';
 import 'package:flutter_application_1/screens/3d_model/create_model.dart';
-import 'package:flutter_application_1/screens/middle/closet.dart';
+import 'package:flutter_application_1/screens/closet/closet_screen.dart';
 import 'package:flutter_application_1/screens/shop/mall.dart';
 import 'package:flutter_application_1/screens/video/video.dart';
 
@@ -137,15 +137,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _getScreen(int index) {
     switch (index) {
-      case 0: return VideoRecorderWidget();
+      case 0: return const VideoRecorderWidget();
       case 1:
         return ClosetScreen(
           initialItems: closetItems,
           initialLastDocument: lastDocument,
           isInitialLoading: isLoading,
         );
-      case 2: return CreateModelScreen();
-      case 3: return MallScreen();
+      case 2: return const CreateModelScreen();
+      case 3: return const MallScreen();
       default:
         return ClosetScreen(
           initialItems: closetItems,
