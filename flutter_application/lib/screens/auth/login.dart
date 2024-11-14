@@ -1,12 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/services/auth_service.dart';
-import '../find/find_id.dart';
-import '../find/find_password.dart';
+import 'find_id_screen.dart';
+import 'find_password_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_application_1/auth/login_logic.dart';
-import '../../main_screen.dart';
-import 'package:flutter_application_1/screens/auth_screen/sign_up/sign_up_1.dart';
+import '../main_screen.dart';
+import 'package:flutter_application_1/screens/auth/email_singup_screen.dart';
 
 class Login extends StatefulWidget {
   const Login({Key? key}) : super(key: key);

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/models/Alert.dart';
+import 'package:flutter_application_1/widgets/alert.dart';
 import 'package:flutter_application_1/models/PreferencesScreen.dart';
 import 'package:flutter_application_1/screens/recommend/color_screen.dart';
 

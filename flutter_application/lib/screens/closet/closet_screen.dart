@@ -3,10 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/auth/login_logic.dart';
-import 'package:flutter_application_1/data/data.dart';
+import 'package:flutter_application_1/screens/closet/selection_manager.dart';
+import 'package:flutter_application_1/services/closet_data.dart';
 import 'package:flutter_application_1/models/ClosetItem.dart';
 import 'package:flutter_application_1/models/Metadata.dart';
 import 'package:flutter_application_1/screens/closet/selected_item.dart';
+import 'package:flutter_application_1/services/firebase_data.dart';
+import 'package:flutter_application_1/utils/constants.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
@@ -30,7 +33,9 @@ class _ClosetScreenState extends State<ClosetScreen> {
   final ImagePicker _picker = ImagePicker();
   final storage = FirebaseStorage.instance;
   final firestore = FirebaseFirestore.instance;
-  final _dataService = ClosetDataService();
+  final _closetDataService = ClosetDataService();
+  final _selectionManager = SelectionManager();
+  final _dataService = ImageUploadService();
 
   List<ClosetItem> items = [];
   bool isLoading = false;
@@ -38,9 +43,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
   static const int pageSize = 10;
 
   bool isSelectionMode = false; // Selection mode toggle
-  List<ClosetItem> selectedItems = []; // Selected items list
-  ClosetItem? selectedTop; // Selected top item
-  ClosetItem? selectedBottom; // Selected bottom item
+  bool isDeleteMode = false;
 
   @override
   void initState() {
@@ -62,7 +65,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
 
     setState(() => isLoading = true);
 
-    final result = await _dataService.loadInitialClosetData(user.uid);
+    final result = await _closetDataService.loadInitialClosetData(user.uid);
 
     if (!mounted) return;
 
@@ -88,7 +91,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
     setState(() => isLoading = true);
 
     final result =
-        await _dataService.loadMoreClosetData(user.uid, lastDocument!);
+        await _closetDataService.loadMoreClosetData(user.uid, lastDocument!);
 
     if (result['error'] != null) {
       print(result['error']);
@@ -106,89 +109,142 @@ class _ClosetScreenState extends State<ClosetScreen> {
     final user = Provider.of<LoginAuth>(context, listen: false).user;
     if (user == null) return;
 
-    try {
-      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-      if (photo == null) return;
-
-      final metadata = await showDialog<ClothingMetadata>(
-        context: context,
-        builder: (context) => const MetadataInputDialog(),
-      );
-
-      if (metadata == null) return;
-
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final ref = storage.ref('closet/${user.uid}/images/$fileName');
-
-      await ref.putFile(File(photo.path));
-      final downloadUrl = await ref.getDownloadURL();
-
-      final result = await _dataService.saveClosetItem(
-        userId: user.uid,
-        imageUrl: downloadUrl,
-        style: metadata.style,
-        size: metadata.size,
-        part: metadata.part, // 선택된 part 저장
-      );
-
-      if (result['error'] != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['error'])),
+    final result = await _dataService.uploadImageFromCamera(
+      userId: user.uid,
+      context: context,
+      onUploadSuccess: (metadata, downloadUrl) async {
+        final saveResult = await _closetDataService.saveClosetItem(
+          userId: user.uid,
+          imageUrl: downloadUrl,
+          style: metadata.style,
+          size: metadata.size,
+          part: metadata.part,
         );
-      } else {
-        loadInitialData();
-      }
-    } catch (e) {
-      print('Error taking picture: $e');
+
+        if (saveResult['error'] != null) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(saveResult['error'])),
+          );
+        } else {
+          loadInitialData();
+        }
+      },
+    );
+
+    if (result['error'] != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to save image')),
+        SnackBar(content: Text(result['error'])),
       );
     }
   }
 
   void toggleSelection(ClosetItem item) {
     setState(() {
-      if (item.part == '상의') {
-        if (selectedTop == item) {
-          selectedTop = null; // 같은 상의를 다시 클릭하면 선택 해제
-        } else if (selectedTop != null) {
-          // 다른 상의가 이미 선택되어 있을 때
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('이미 상의가 선택되어 있습니다')),
-          );
-          return;
-        } else {
-          selectedTop = item; // 새로운 상의 선택
-        }
-      } else if (item.part == '하의') {
-        if (selectedBottom == item) {
-          selectedBottom = null; // 같은 하의를 다시 클릭하면 선택 해제
-        } else if (selectedBottom != null) {
-          // 다른 하의가 이미 선택되어 있을 때
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('이미 하의가 선택되어 있습니다')),
-          );
-          return;
-        } else {
-          selectedBottom = item; // 새로운 하의 선택
-        }
-      }
-
-      // 선택된 아이템 리스트 업데이트
-      selectedItems = [];
-      if (selectedTop != null) {
-        selectedItems.add(selectedTop!);
-      }
-      if (selectedBottom != null) {
-        selectedItems.add(selectedBottom!);
-      }
+      _selectionManager.toggleSelection(item, (errorMessage) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(errorMessage)));
+      });
     });
+  }
+
+  Future<void> completeSelectionMode() async {
+    // Navigate to a new screen with selected items
+    if (_selectionManager.selectedItems.length == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SelectedItemsScreen(
+            selectedItems: _selectionManager.selectedItems,
+            userId: '',
+          ),
+        ),
+      );
+      // Clear selection after navigation
+      setState(() {
+        _selectionManager.clearSelection();
+        isSelectionMode = false;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select both a top and bottom'),
+        ),
+      );
+    }
+  }
+
+  Future<void> completeDeleteMode() async {
+    if (_selectionManager.selectedItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select items to delete')),
+      );
+      return;
+    }
+
+    // Show confirmation dialog
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Deletion'),
+          content: Text(
+              '삭제하시겠습니까? ${_selectionManager.selectedItems.length} items?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('아니오'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('네'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      try {
+        setState(() => isLoading = true); // 로딩 상태 시작
+
+        // 삭제 작업 수행
+        await _selectionManager.deleteSelectedItems(context, (error) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(error)),
+            );
+          }
+        });
+
+        // 약간의 지연을 주어 Firebase 작업이 완료되도록 함
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        // 데이터 새로고침
+        if (mounted) {
+          await loadInitialData();
+        }
+
+        // 삭제 후 UI 업데이트
+        if (mounted) {
+          setState(() {
+            isDeleteMode = false; // 삭제 모드 종료
+            isLoading = false; // 로딩 상태 종료
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('삭제 중 오류가 발생했습니다: $e')),
+          );
+          setState(() => isLoading = false); // 로딩 상태 종료
+        }
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<LoginAuth>(context, listen: false).user;
-
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -197,46 +253,62 @@ class _ClosetScreenState extends State<ClosetScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.camera_alt, size: 32),
-                  onPressed: takePicture,
-                ),
                 const SizedBox(width: 16),
-                IconButton(
-                  icon: Icon(
-                    isSelectionMode
-                        ? Icons.check_box
-                        : Icons.check_box_outline_blank,
-                    size: 32,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      isSelectionMode = !isSelectionMode;
-                      selectedItems.clear();
-                    });
-                  },
-                ),
-                if (isSelectionMode) ...[
-                  const SizedBox(width: 16),
-                  ElevatedButton(
+                if (!isSelectionMode && !isDeleteMode) ...[
+                  IconButton(
+                    icon: const Icon(
+                      Icons.check_box_outline_blank,
+                      size: 32,
+                    ),
                     onPressed: () {
-                      if (selectedItems.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('선택된 아이템이 없습니다')),
-                        );
-                        return;
-                      }
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SelectedItemsScreen(
-                            selectedItems: selectedItems,
-                            userId: user?.uid ?? '',
-                          ),
-                        ),
-                      );
+                      setState(() {
+                        isSelectionMode = true;
+                        isDeleteMode = false;
+                        _selectionManager.clearSelection();
+                      });
                     },
-                    child: const Text('완료'),
+                  ),
+                  const SizedBox(width: 16),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 32,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        isDeleteMode = true;
+                        isSelectionMode = false;
+                        _selectionManager.clearSelection();
+                      });
+                    },
+                  ),
+                ] else if (isSelectionMode) ...[
+                  IconButton(
+                    icon: Icon(Icons.check, color: AppColors.navy, size: 32),
+                    onPressed: completeSelectionMode,
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close, color: AppColors.navy, size: 32),
+                    onPressed: () {
+                      setState(() {
+                        isSelectionMode = false;
+                        _selectionManager.clearSelection();
+                      });
+                    },
+                  ),
+                ] else if (isDeleteMode) ...[
+                  IconButton(
+                    icon: Icon(Icons.check, color: AppColors.navy, size: 32),
+                    onPressed: completeDeleteMode,
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close, color: AppColors.navy, size: 32),
+                    onPressed: () {
+                      setState(() {
+                        isDeleteMode = false;
+                        _selectionManager.clearSelection();
+                      });
+                    },
                   ),
                 ],
               ],
@@ -244,54 +316,66 @@ class _ClosetScreenState extends State<ClosetScreen> {
             Expanded(
               child: isLoading && items.isEmpty
                   ? const Center(child: CircularProgressIndicator())
-                  : items.isEmpty
-                      ? const Center(child: Text('Your closet is empty'))
-                      : RefreshIndicator(
-                          onRefresh: loadInitialData,
-                          child: NotificationListener<ScrollNotification>(
-                            onNotification: (ScrollNotification scrollInfo) {
-                              if (!isLoading &&
-                                  scrollInfo.metrics.pixels >=
-                                      scrollInfo.metrics.maxScrollExtent -
-                                          200) {
-                                loadMoreData();
-                              }
-                              return true;
-                            },
-                            child: GridView.builder(
-                              padding: const EdgeInsets.all(8),
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
-                                childAspectRatio: 0.75,
-                              ),
-                              itemCount: items.length + (isLoading ? 1 : 0),
-                              itemBuilder: (context, index) {
-                                if (index == items.length) {
-                                  return const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(16.0),
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
-                                }
-                                return ClothingItemCard(
-                                  item: items[index],
-                                  isSelectionMode: isSelectionMode,
-                                  isSelected:
-                                      selectedItems.contains(items[index]),
-                                  onToggleSelection: () {
-                                    if (isSelectionMode) {
-                                      toggleSelection(items[index]);
-                                    }
-                                  },
-                                );
-                              },
-                            ),
+                  : RefreshIndicator(
+                      onRefresh: loadInitialData,
+                      child: NotificationListener<ScrollNotification>(
+                        onNotification: (ScrollNotification scrollInfo) {
+                          if (!isLoading &&
+                              scrollInfo.metrics.pixels >=
+                                  scrollInfo.metrics.maxScrollExtent - 200) {
+                            loadMoreData();
+                          }
+                          return true;
+                        },
+                        child: GridView.builder(
+                          padding: const EdgeInsets.all(8),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                            childAspectRatio: 0.75,
                           ),
+                          // 여기서 항상 최소 1개 아이템(카메라 버튼)이 있도록 설정
+                          itemCount: items.isEmpty ? 1 : items.length + 1,
+                          itemBuilder: (context, index) {
+                            if (index == 0) {
+                              // 카메라 버튼
+                              return GestureDetector(
+                                onTap: takePicture,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: AppColors.blue,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    size: 40,
+                                    color: AppColors.white,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final item = items[index - 1];
+                            return ClothingItemCard(
+                              item: item,
+                              isSelected: _selectionManager.selectedItems
+                                  .contains(item),
+                              onToggleSelection: () {
+                                setState(() {
+                                  if (isSelectionMode) {
+                                    toggleSelection(item);
+                                  } else if (isDeleteMode) {
+                                    _selectionManager.toggleDeletion(item);
+                                  }
+                                });
+                              },
+                            );
+                          },
                         ),
+                      ),
+                    ),
             ),
           ],
         ),

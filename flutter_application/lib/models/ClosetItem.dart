@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/utils/constants.dart';
 
 class ClosetItem {
   final String id; // ID 필드 추가
@@ -30,14 +31,12 @@ class ClosetItem {
 
 class ClothingItemCard extends StatelessWidget {
   final ClosetItem item;
-  final bool isSelectionMode;
   final bool isSelected;
   final VoidCallback onToggleSelection;
 
   const ClothingItemCard({
     Key? key,
     required this.item,
-    required this.isSelectionMode,
     required this.isSelected,
     required this.onToggleSelection,
   }) : super(key: key);
@@ -45,13 +44,10 @@ class ClothingItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      // 하나의 GestureDetector만 사용
-      onTap: onToggleSelection,
+      onTap: onToggleSelection, // 선택/해제 처리
       child: Card(
         elevation: 4,
-        color: isSelected
-            ? Color.fromARGB(224, 165, 147, 224)
-            : Colors.white, // 카드 전체 색상 변경
+        color: isSelected ? AppColors.lavender : Colors.white, // 선택된 경우 색상 변경
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         child: Column(
           children: [
@@ -71,13 +67,10 @@ class ClothingItemCard extends StatelessWidget {
                 children: [
                   Text(
                     '스타일: ${item.style}',
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  Text('사이즈: ${item.size}',
-                      style: const TextStyle(fontSize: 14)),
-                  Text('부위: ${item.part}',
-                      style: const TextStyle(fontSize: 14)),
+                  Text('사이즈: ${item.size}', style: const TextStyle(fontSize: 14)),
+                  Text('부위: ${item.part}', style: const TextStyle(fontSize: 14)),
                 ],
               ),
             ),

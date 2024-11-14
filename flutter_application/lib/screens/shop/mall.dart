@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_application_1/models/MallItem.dart';
+import 'package:flutter_application_1/utils/constants.dart';
+import 'package:flutter_application_1/widgets/mall_item_card.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MallScreen extends StatefulWidget {
@@ -15,9 +16,12 @@ class MallScreen extends StatefulWidget {
 class _MallScreenState extends State<MallScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final ScrollController _scrollController = ScrollController();
+  final List<String> categories = ['전체', '상의', '하의', '아우터', '스타일1', '스타일2', '스타일3'];
+  
   List<MallItem> items = [];
   bool isLoading = false;
   bool hasMore = true;
+  String selectedCategory = '전체';
   final int limit = 20;
   DocumentSnapshot? lastDocument;
   bool _disposed = false;
@@ -47,12 +51,21 @@ class _MallScreenState extends State<MallScreen> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.offset;
     if (currentScroll >= (maxScroll * 0.7)) {
       _loadMoreItems();
     }
+  }
+
+  Query _buildQuery() {
+    Query query = _firestore.collection('items').orderBy('Code', descending: true);
+    
+    if (selectedCategory != '전체') {
+      query = query.where('Category.Main', isEqualTo: selectedCategory);
+    }
+    
+    return query.limit(limit);
   }
 
   Future<void> _loadMoreItems() async {
@@ -63,58 +76,33 @@ class _MallScreenState extends State<MallScreen> {
     });
 
     try {
-      QuerySnapshot snapshot;
-      Query query = _firestore
-          .collection('items')
-          .orderBy('Code', descending: true)
-          .limit(limit);
-
+      var query = _buildQuery();
       if (lastDocument != null) {
         query = query.startAfterDocument(lastDocument!);
       }
 
-      snapshot = await query.get();
-
+      final snapshot = await query.get();
+      
       if (_disposed) return;
 
-      if (snapshot.docs.isNotEmpty) {
-        lastDocument = snapshot.docs.last;
+      if (snapshot.docs.isEmpty) {
+        setState(() {
+          hasMore = false;
+          isLoading = false;
+        });
+        return;
+      }
 
-        final newItems = await Future.wait(snapshot.docs.map((doc) async {
-          final data = doc.data() as Map<String, dynamic>;
+      lastDocument = snapshot.docs.last;
+      final newItems = await Future.wait(
+        snapshot.docs.map((doc) => _createMallItem(doc))
+      );
 
-          // 문서 ID를 사용하여 이미지 URL 생성
-          final storageRef =
-              FirebaseStorage.instance.ref().child('items/${doc.id}.jpg');
-          final imageUrl = await storageRef.getDownloadURL();
-
-          return MallItem(
-            code: data['Code']?.toString() ?? '',
-            name: data['Name'] ?? '',
-            price: data['Price']?.toString() ?? '',
-            brand: data['Brand'] ?? '',
-            category:
-                '${data['Category']?['Main'] ?? ''} > ${data['Category']?['Sub'] ?? ''}',
-            mainCategory: data['Category']?['Main'] ?? '',
-            subCategory: data['Category']?['Sub'] ?? '',
-            imageUrl: imageUrl, // 문서 ID 기반 이미지 URL
-            link: data['Link'] ?? '',
-          );
-        }));
-
-        if (!_disposed) {
-          setState(() {
-            items.addAll(newItems);
-            isLoading = false;
-          });
-        }
-      } else {
-        if (!_disposed) {
-          setState(() {
-            hasMore = false;
-            isLoading = false;
-          });
-        }
+      if (!_disposed) {
+        setState(() {
+          items.addAll(newItems);
+          isLoading = false;
+        });
       }
     } catch (error) {
       print('Error loading items: $error');
@@ -122,6 +110,54 @@ class _MallScreenState extends State<MallScreen> {
         setState(() {
           isLoading = false;
         });
+      }
+    }
+  }
+
+  Future<MallItem> _createMallItem(DocumentSnapshot doc) async {
+    final data = doc.data() as Map<String, dynamic>;
+    final storageRef = FirebaseStorage.instance.ref().child('items/${doc.id}.jpg');
+    final imageUrl = await storageRef.getDownloadURL();
+
+    return MallItem(
+      code: data['Code']?.toString() ?? '',
+      name: data['Name'] ?? '',
+      price: data['Price']?.toString() ?? '',
+      brand: data['Brand'] ?? '',
+      category: '${data['Category']?['Main'] ?? ''} > ${data['Category']?['Sub'] ?? ''}',
+      mainCategory: data['Category']?['Main'] ?? '',
+      subCategory: data['Category']?['Sub'] ?? '',
+      imageUrl: imageUrl,
+      link: data['Link'] ?? '',
+    );
+  }
+
+  Future<void> _refreshItems() async {
+    setState(() {
+      items.clear();
+      lastDocument = null;
+      hasMore = true;
+    });
+    await _loadMoreItems();
+  }
+
+  Future<void> _handleCategorySelect(String category) async {
+    if (category == selectedCategory) return;
+    
+    setState(() {
+      selectedCategory = category;
+    });
+    await _refreshItems();
+  }
+
+  Future<void> _launchURL(String url) async {
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      if (!_disposed) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('링크를 열 수 없습니다')),
+        );
       }
     }
   }
@@ -141,7 +177,10 @@ class _MallScreenState extends State<MallScreen> {
           children: [
             _buildCategoryFilters(),
             Expanded(
-              child: _buildContent(),
+              child: RefreshIndicator(
+                onRefresh: _refreshItems,
+                child: _buildContent(),
+              ),
             ),
           ],
         ),
@@ -149,56 +188,43 @@ class _MallScreenState extends State<MallScreen> {
     );
   }
 
+  Widget _buildCategoryFilters() {
+    return SizedBox(
+      height: 50,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        children: categories.map((category) => _buildFilterChip(category)).toList(),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label) {
+    final isSelected = selectedCategory == label;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        label: Text(label),
+        selected: isSelected,
+        onSelected: (_) => _handleCategorySelect(label),
+        backgroundColor: Colors.white,
+        selectedColor: AppColors.navy,
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.white : Colors.black87,
+        ),
+      ),
+    );
+  }
+
   Widget _buildContent() {
-    // 초기 로딩 상태
     if (items.isEmpty && isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Color.fromARGB(224, 165, 147, 224),
-              ),
-            ),
-            SizedBox(height: 16),
-            Text(
-              '상품을 불러오는 중입니다...',
-              style: TextStyle(
-                color: Color.fromARGB(224, 165, 147, 224),
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-      );
+      return const _LoadingIndicator();
     }
 
-    // 데이터가 없는 상태
     if (items.isEmpty && !isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.shopping_bag_outlined,
-              size: 48,
-              color: Color.fromARGB(224, 165, 147, 224),
-            ),
-            SizedBox(height: 16),
-            Text(
-              '상품이 없습니다',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
-      );
+      return const _EmptyContent();
     }
 
-    // 데이터가 있는 상태 - 기존 GridView 반환
     return GridView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(12.0),
@@ -211,15 +237,20 @@ class _MallScreenState extends State<MallScreen> {
       itemCount: items.length + (isLoading ? 1 : 0),
       itemBuilder: (context, index) {
         if (index < items.length) {
-          return _buildItemCard(items[index]);
+          return MallItemCard(
+            item: items[index],
+            onLikePressed: () {
+              // TODO: Implement wishlist functionality
+            },
+            onBuyPressed: () => _launchURL(items[index].link),
+          );
         } else {
-          // 로딩 표시를 위한 한 아이템 추가
           return const Padding(
             padding: EdgeInsets.all(16.0),
             child: Center(
               child: CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  Color.fromARGB(224, 165, 147, 224),
+                  AppColors.navy,
                 ),
               ),
             ),
@@ -228,240 +259,273 @@ class _MallScreenState extends State<MallScreen> {
       },
     );
   }
+}
 
-  Widget _buildCategoryFilters() {
-    return SizedBox(
-      height: 50,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+class _LoadingIndicator extends StatelessWidget {
+  const _LoadingIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildFilterChip('전체'),
-          _buildFilterChip('상의'),
-          _buildFilterChip('하의'),
-          _buildFilterChip('아우터'),
-          _buildFilterChip('악세서리'),
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Color.fromARGB(224, 165, 147, 224),
+            ),
+          ),
+          SizedBox(height: 16),
+          Text(
+            '상품을 불러오는 중입니다...',
+            style: TextStyle(
+              color: AppColors.navy,
+              fontSize: 16,
+            ),
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildFilterChip(String label) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        label: Text(label),
-        onSelected: (bool selected) {
-          // TODO: Implement filter logic
-        },
-        backgroundColor: Colors.white,
-        selectedColor: const Color.fromARGB(224, 165, 147, 224),
-      ),
-    );
-  }
+class _EmptyContent extends StatelessWidget {
+  const _EmptyContent();
 
-  Widget _buildGridView() {
-    return GridView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(12.0), // 패딩 줄임
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 1.5, // 비율 조정
-        crossAxisSpacing: 12, // 간격 줄임
-        mainAxisSpacing: 12, // 간격 줄임
-      ),
-      itemCount: items.length + (isLoading ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index < items.length) {
-          return _buildItemCard(items[index]);
-        } else {
-          return const Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Color.fromARGB(224, 165, 147, 224),
-              ),
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.shopping_bag_outlined,
+            size: 48,
+            color: AppColors.blue,
+          ),
+          SizedBox(height: 16),
+          Text(
+            '상품이 없습니다',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
             ),
-          );
-        }
-      },
-    );
-  }
-
-  Widget _buildItemCard(MallItem item) {
-    final formattedPrice = '${int.parse(item.price).toLocaleString()}원';
-
-    return Card(
-      elevation: 5,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: SizedBox(
-        height: 500, // 여기에 아이템의 세로 크기를 설정
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 이미지 컨테이너
-            Expanded(
-              flex: 7,
-              child: Container(
-                color: Colors.grey[100],
-                child: Stack(
-                  children: [
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(4), // 패딩을 줄여서 이미지 크기 확보
-                        child: CachedNetworkImage(
-                          imageUrl: item.imageUrl,
-                          fit: BoxFit.fitHeight, // BoxFit.contain으로 수정
-                          width: double.infinity,
-                          height: double.infinity,
-                          placeholder: (context, url) => const Center(
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Color.fromARGB(224, 165, 147, 224),
-                                ),
-                              ),
-                            ),
-                          ),
-                          errorWidget: (context, url, error) => const Center(
-                            child:
-                                Icon(Icons.error, color: Colors.red, size: 20),
-                          ),
-                        ),
-                      ),
-                    ),
-                    // 좋아요 버튼
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black.withOpacity(0.5),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.favorite_border,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                          padding: EdgeInsets.zero,
-                          onPressed: () {
-                            // TODO: Implement wishlist functionality
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // 상품 정보 컨테이너
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 6), // 수직 패딩 줄임
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    item.brand,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: Colors.grey[700],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2), // 간격 줄임
-                  Text(
-                    item.name,
-                    style: const TextStyle(fontSize: 13),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2), // 간격 줄임
-                  Text(
-                    formattedPrice,
-                    style: const TextStyle(
-                      color: Color.fromARGB(224, 165, 147, 224),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 6), // 간격 줄임
-                  // 구매하기 버튼
-                  SizedBox(
-                    width: double.infinity,
-                    height: 32,
-                    child: ElevatedButton(
-                      onPressed: () => _launchURL(item.link),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            const Color.fromARGB(224, 165, 147, 224),
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: const Text(
-                        '구매하기',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
-  }
-
-  Widget _buildViewDetailsButton(String url) {
-    return ElevatedButton(
-      onPressed: () => _launchURL(url),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color.fromARGB(224, 165, 147, 224),
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        minimumSize: const Size(double.infinity, 36),
-      ),
-      child: const Text('구매하기'),
-    );
-  }
-
-  Future<void> _launchURL(String url) async {
-    if (await canLaunch(url)) {
-      await launch(url);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('링크를 열 수 없습니다')),
-      );
-    }
   }
 }
 
-extension NumberFormat on int {
-  String toLocaleString() {
-    return toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-  }
-}
+
+// import 'package:flutter/material.dart';
+// import 'package:flutter_application_1/controller/mall_controller.dart';
+// import 'package:flutter_application_1/models/MallItem.dart';
+// import 'package:flutter_application_1/repository/mall_repository.dart';
+// import 'package:flutter_application_1/screens/shop/mall_widgets.dart';
+// import 'package:url_launcher/url_launcher.dart';
+
+// class MallScreen extends StatefulWidget {
+//   const MallScreen({super.key});
+
+//   @override
+//   _MallScreenState createState() => _MallScreenState();
+// }
+
+// class _MallScreenState extends State<MallScreen> {
+//   final ScrollController _scrollController = ScrollController();
+//   final List<String> categories = ['전체', '상의', '하의', '아우터', '악세서리'];
+  
+//   late final MallController _controller;
+//   List<MallItem> items = [];
+//   bool isLoading = false;
+//   bool _disposed = false;
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _controller = MallController(repository: MallRepository());
+//     _loadMoreItems();
+//     _scrollController.addListener(_onScroll);
+//   }
+
+//   @override
+//   void dispose() {
+//     _disposed = true;
+//     _scrollController.removeListener(_onScroll);
+//     _scrollController.dispose();
+//     super.dispose();
+//   }
+
+//   void _onScroll() {
+//     if (!_scrollController.hasClients) return;
+//     final maxScroll = _scrollController.position.maxScrollExtent;
+//     final currentScroll = _scrollController.offset;
+//     if (currentScroll >= (maxScroll * 0.7)) {
+//       _loadMoreItems();
+//     }
+//   }
+
+//   Future<void> _loadMoreItems() async {
+//     if (isLoading || !_controller.hasMore || _disposed) return;
+
+//     setState(() {
+//       isLoading = true;
+//     });
+
+//     try {
+//       final newItems = await _controller.loadMoreItems();
+//       if (!_disposed) {
+//         setState(() {
+//           items.addAll(newItems);
+//           isLoading = false;
+//         });
+//       }
+//     } catch (error) {
+//       print('Error loading items: $error');
+//       if (!_disposed) {
+//         setState(() {
+//           isLoading = false;
+//         });
+//       }
+//     }
+//   }
+
+//   Future<void> _refreshItems() async {
+//     setState(() {
+//       items.clear();
+//       _controller.resetPagination();
+//     });
+//     await _loadMoreItems();
+//   }
+
+//   Future<void> _handleCategorySelect(String category) async {
+//     if (category == _controller.currentCategory) return;
+    
+//     _controller.updateCategory(category);
+//     await _refreshItems();
+//   }
+
+//   Future<void> _launchURL(String url) async {
+//     if (await canLaunch(url)) {
+//       await launch(url);
+//     } else {
+//       if (!_disposed) {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           const SnackBar(content: Text('링크를 열 수 없습니다')),
+//         );
+//       }
+//     }
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: Container(
+//         decoration: BoxDecoration(
+//           gradient: LinearGradient(
+//             begin: Alignment.topCenter,
+//             end: Alignment.bottomCenter,
+//             colors: [Colors.teal.shade50, Colors.white],
+//           ),
+//         ),
+//         child: Column(
+//           children: [
+//             MallWidgets.buildCategoryFilters(
+//               categories: categories,
+//               selectedCategory: _controller.currentCategory,
+//               onCategorySelected: _handleCategorySelect,
+//             ),
+//             Expanded(
+//               child: RefreshIndicator(
+//                 onRefresh: _refreshItems,
+//                 child: _buildContent(),
+//               ),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+
+//   Widget _buildContent() {
+//     if (items.isEmpty && isLoading) {
+//       return const _LoadingIndicator();
+//     }
+
+//     if (items.isEmpty && !isLoading) {
+//       return const _EmptyContent();
+//     }
+
+//     return MallWidgets.buildGridView(
+//       items: items,
+//       isLoading: isLoading,
+//       scrollController: _scrollController,
+//       onBuyPressed: _launchURL,
+//       onLikePressed: () {}, // TODO: Implement wishlist functionality
+//     );
+//   }
+// }
+
+// class _LoadingIndicator extends StatelessWidget {
+//   const _LoadingIndicator({Key? key}) : super(key: key);
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return const Center(
+//       child: Column(
+//         mainAxisAlignment: MainAxisAlignment.center,
+//         children: [
+//           CircularProgressIndicator(
+//             valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(224, 165, 147, 224)),
+//           ),
+//           SizedBox(height: 16),
+//           Text(
+//             '로딩 중...',
+//             style: TextStyle(
+//               color: Colors.black54,
+//               fontSize: 16,
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
+
+// class _EmptyContent extends StatelessWidget {
+//   const _EmptyContent({Key? key}) : super(key: key);
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Center(
+//       child: Column(
+//         mainAxisAlignment: MainAxisAlignment.center,
+//         children: [
+//           Icon(
+//             Icons.shopping_bag_outlined,
+//             size: 64,
+//             color: Colors.grey[400],
+//           ),
+//           const SizedBox(height: 16),
+//           Text(
+//             '상품이 없습니다',
+//             style: TextStyle(
+//               color: Colors.grey[600],
+//               fontSize: 18,
+//               fontWeight: FontWeight.w500,
+//             ),
+//           ),
+//           const SizedBox(height: 8),
+//           Text(
+//             '다른 카테고리를 선택해보세요',
+//             style: TextStyle(
+//               color: Colors.grey[500],
+//               fontSize: 14,
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }

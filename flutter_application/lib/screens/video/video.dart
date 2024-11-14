@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter_application_1/auth/login_logic.dart';
-import 'package:flutter_application_1/models/Alert.dart';
+import 'package:flutter_application_1/widgets/alert.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';

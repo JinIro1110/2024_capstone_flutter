@@ -1,15 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/data/data.dart';
 import 'package:flutter_application_1/models/ClosetItem.dart';
-import 'package:flutter_application_1/models/Menu.dart';
 import 'package:flutter_application_1/screens/recommend/style_screen.dart';
+import 'package:flutter_application_1/utils/constants.dart';
+import 'package:flutter_application_1/widgets/bottom_navigation.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_application_1/auth/login_logic.dart';
 import 'package:flutter_application_1/screens/3d_model/create_model.dart';
 import 'package:flutter_application_1/screens/closet/closet_screen.dart';
 import 'package:flutter_application_1/screens/shop/mall.dart';
-import 'package:flutter_application_1/screens/video/video.dart';
 
 class MyHomePage extends StatefulWidget {
   final List<ClosetItem> preloadedItems;
@@ -26,14 +25,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  // Constants
-  static const Color darkGrey = Color.fromARGB(224, 86, 98, 112);
-  static const Color lightPurple = Color.fromARGB(224, 165, 147, 224);
-  static const Color lightGrey = Color.fromARGB(224, 224, 227, 218);
-
-  // State variables
+  // 상태
   int _selectedIndex = 1;
-  final _closetDataService = ClosetDataService();
   List<ClosetItem> closetItems = [];
   DocumentSnapshot? lastDocument;
   bool isLoading = false;
@@ -52,18 +45,18 @@ class _MyHomePageState extends State<MyHomePage> {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: darkGrey),
-      title: Text(title, style: const TextStyle(color: darkGrey)),
+      leading: Icon(icon, color: AppColors.navy),
+      title: Text(title, style: const TextStyle(color: AppColors.navy)),
       onTap: onTap,
     );
   }
 
   Widget _buildDrawerHeader() {
     return const DrawerHeader(
-      decoration: BoxDecoration(color: lightPurple),
+      decoration: BoxDecoration(color: AppColors.navy),
       child: Text(
         '메뉴',
-        style: TextStyle(color: darkGrey, fontSize: 24),
+        style: TextStyle(color: AppColors.white, fontSize: 24),
       ),
     );
   }
@@ -72,22 +65,19 @@ class _MyHomePageState extends State<MyHomePage> {
     return [
       _buildDrawerHeader(),
       _buildDrawerItem(
-        icon: Icons.home,
-        title: '홈',
-        onTap: () {
-          Navigator.pop(context);
-          _onItemTapped(1);
-        },
-      ),
-      _buildDrawerItem(
         icon: Icons.person,
         title: '프로필',
         onTap: () => Navigator.pop(context),
       ),
       _buildDrawerItem(
         icon: Icons.style,
-        title: '내 취향',
+        title: '옷 추천',
         onTap: () => _handleStyleSelection(context),
+      ),
+      _buildDrawerItem(
+        icon: Icons.camera,
+        title: '모델 생성',
+        onTap: () => Navigator.pop(context),
       ),
       _buildDrawerItem(
         icon: Icons.settings,
@@ -129,7 +119,7 @@ class _MyHomePageState extends State<MyHomePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: darkGrey,
+        backgroundColor: AppColors.blue,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -137,15 +127,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _getScreen(int index) {
     switch (index) {
-      case 0: return const VideoRecorderWidget();
+      // case 0: return const VideoRecorderWidget();
+      case 0: return const CreateModelScreen();
       case 1:
         return ClosetScreen(
           initialItems: closetItems,
           initialLastDocument: lastDocument,
           isInitialLoading: isLoading,
         );
-      case 2: return const CreateModelScreen();
-      case 3: return const MallScreen();
+      
+      case 2: return const MallScreen();
       default:
         return ClosetScreen(
           initialItems: closetItems,
@@ -175,9 +166,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Main Screen', style: TextStyle(color: lightGrey)),
-        backgroundColor: darkGrey,
-        iconTheme: const IconThemeData(color: lightGrey),
+        // title: const Text('Main Screen', style: TextStyle(color: lightGrey)),
+        backgroundColor: AppColors.navy,
+        iconTheme: const IconThemeData(color: AppColors.white),
         actions: [
           IconButton(
             icon: const Icon(Icons.exit_to_app),
@@ -187,7 +178,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       drawer: Drawer(
         child: Container(
-          color: lightGrey,
+          color: AppColors.white,
           child: ListView(
             padding: EdgeInsets.zero,
             children: _buildDrawerItems(context),
@@ -195,15 +186,12 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       body: Container(
-        color: Colors.teal.shade50,
+        color: AppColors.lavender,
         child: isLoading ? const Center(child: CircularProgressIndicator()) : _getScreen(_selectedIndex),
       ),
       bottomNavigationBar: BottomNavigation(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
-        lightPurple: lightPurple,
-        darkGrey: darkGrey,
-        lightGrey: lightGrey,
       ),
     );
   }
