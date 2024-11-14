@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/utils/constants.dart';
 import 'package:flutter_application_1/widgets/alert.dart';
 import 'package:flutter_application_1/models/PreferencesScreen.dart';
 import 'package:flutter_application_1/screens/recommend/pattern_screen.dart';
@@ -46,11 +47,14 @@ class _StyleScreenState extends State<StyleScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          '스타일 선택',
-          style: TextStyle(color: Colors.white),
+        backgroundColor: AppColors.navy,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.white),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
         ),
-        backgroundColor: const Color.fromARGB(224, 86, 98, 112),
       ),
       body: Column(
         children: [

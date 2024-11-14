@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter_application_1/auth/login_logic.dart';
+import 'package:flutter_application_1/utils/constants.dart';
 import 'package:flutter_application_1/widgets/alert.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -208,12 +209,18 @@ class _VideoRecorderWidgetState extends State<VideoRecorderWidget> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return Alert(
-          title: '업로드 완료',
-          content: '4개의 영상이 모두 녹화되고 업로드되었습니다.',
-          onConfirm: () {
-            // 확인 버튼 클릭 시 추가 동작이 있으면 여기에 작성
-          },
+        return AlertDialog(
+          title: const Text('업로드 완료'),
+          content: const Text('4개의 영상이 모두 녹화되고 업로드되었습니다.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                // 확인 버튼 클릭 시 메인 화면으로 돌아가기
+                Navigator.popUntil(context, (route) => route.isFirst);
+              },
+              child: const Text('확인'),
+            ),
+          ],
         );
       },
     );
@@ -228,6 +235,16 @@ class _VideoRecorderWidgetState extends State<VideoRecorderWidget> {
     }
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: AppColors.blue,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.white),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
       body: SafeArea(
         child: Stack(
           children: [

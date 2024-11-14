@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/utils/constants.dart';
 import 'package:flutter_application_1/widgets/alert.dart';
 import 'package:flutter_application_1/models/PreferencesScreen.dart';
 import 'package:flutter_application_1/models/preferencesData.dart';
@@ -70,8 +71,14 @@ class _ColorScreenState extends State<ColorScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('색상 선택'),
-        backgroundColor: const Color.fromARGB(224, 86, 98, 112),
+        backgroundColor: AppColors.blue,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.white),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
       ),
       body: Column(
         children: [

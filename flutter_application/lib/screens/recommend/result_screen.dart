@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/models/preferencesData.dart';
 import 'package:flutter_application_1/screens/main_screen.dart';
+import 'package:flutter_application_1/utils/constants.dart';
 
 class ResultScreen extends StatelessWidget {
   final PreferenceData preferenceData;
@@ -12,8 +13,8 @@ class ResultScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('선택 결과'),
-        backgroundColor: const Color.fromARGB(224, 86, 98, 112),
+        backgroundColor: AppColors.navy,
+        elevation: 0,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -39,7 +40,8 @@ class ResultScreen extends StatelessWidget {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(224, 165, 147, 224),
+                  backgroundColor: AppColors.navy,
+                  foregroundColor: Colors.white,
                   minimumSize: const Size(200, 60),
                 ),
                 child: const Text('메인 화면으로 돌아가기'),

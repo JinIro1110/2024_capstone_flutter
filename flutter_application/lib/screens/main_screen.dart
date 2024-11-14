@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/models/ClosetItem.dart';
+import 'package:flutter_application_1/screens/auth/edit_profile.dart';
 import 'package:flutter_application_1/screens/recommend/style_screen.dart';
+import 'package:flutter_application_1/screens/video/video.dart';
 import 'package:flutter_application_1/utils/constants.dart';
 import 'package:flutter_application_1/widgets/bottom_navigation.dart';
 import 'package:provider/provider.dart';
@@ -15,7 +17,7 @@ class MyHomePage extends StatefulWidget {
   final DocumentSnapshot? preloadedLastDocument;
 
   const MyHomePage({
-    Key? key, 
+    Key? key,
     this.preloadedItems = const [],
     this.preloadedLastDocument,
   }) : super(key: key);
@@ -67,7 +69,15 @@ class _MyHomePageState extends State<MyHomePage> {
       _buildDrawerItem(
         icon: Icons.person,
         title: '프로필',
-        onTap: () => Navigator.pop(context),
+        onTap: () {
+          Navigator.pop(context); // Drawer를 닫고
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const EditProfileScreen(),
+            ),
+          );
+        },
       ),
       _buildDrawerItem(
         icon: Icons.style,
@@ -77,7 +87,10 @@ class _MyHomePageState extends State<MyHomePage> {
       _buildDrawerItem(
         icon: Icons.camera,
         title: '모델 생성',
-        onTap: () => Navigator.pop(context),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const VideoRecorderWidget()),
+        ),
       ),
       _buildDrawerItem(
         icon: Icons.settings,
@@ -104,7 +117,7 @@ class _MyHomePageState extends State<MyHomePage> {
         context,
         MaterialPageRoute(builder: (context) => const StyleScreen()),
       );
-      
+
       if (selectedStyles != null && selectedStyles.isNotEmpty && mounted) {
         _showDevelopmentSnackBar(context, '선호 스타일이 업데이트되었습니다');
       }
@@ -128,15 +141,17 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _getScreen(int index) {
     switch (index) {
       // case 0: return const VideoRecorderWidget();
-      case 0: return const CreateModelScreen();
+      case 0:
+        return const CreateModelScreen();
       case 1:
         return ClosetScreen(
           initialItems: closetItems,
           initialLastDocument: lastDocument,
           isInitialLoading: isLoading,
         );
-      
-      case 2: return const MallScreen();
+
+      case 2:
+        return const MallScreen();
       default:
         return ClosetScreen(
           initialItems: closetItems,
@@ -150,7 +165,8 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       await loginAuth.signOut();
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/login', (route) => false);
       }
     } catch (e) {
       print('Sign out error: $e');
@@ -187,7 +203,9 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Container(
         color: AppColors.lavender,
-        child: isLoading ? const Center(child: CircularProgressIndicator()) : _getScreen(_selectedIndex),
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _getScreen(_selectedIndex),
       ),
       bottomNavigationBar: BottomNavigation(
         selectedIndex: _selectedIndex,

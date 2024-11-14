@@ -3,6 +3,7 @@ import 'package:flutter_application_1/screens/auth/login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_1/screens/main_screen.dart';
 import 'package:flutter_application_1/services/closet_data.dart';
+import 'package:flutter_application_1/utils/constants.dart';
 
 class Splash extends StatefulWidget {
   const Splash({Key? key}) : super(key: key);
@@ -75,9 +76,9 @@ class _SplashScreenState extends State<Splash> {
                   ShaderMask(
                     shaderCallback: (bounds) => const LinearGradient(
                       colors: [
-                        Color.fromARGB(224, 86, 98, 112),
-                        Color.fromARGB(224, 165, 147, 224),
-                        Color.fromARGB(224, 224, 227, 218),
+                        AppColors.navy,
+                        AppColors.blue,
+                        AppColors.white,
                       ],
                     ).createShader(
                       Rect.fromLTWH(0, 0, bounds.width, bounds.height),

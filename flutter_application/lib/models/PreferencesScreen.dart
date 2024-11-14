@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/utils/constants.dart';
 
 class PreferencesCard extends StatelessWidget {
   final String label;
@@ -21,7 +22,7 @@ class PreferencesCard extends StatelessWidget {
       child: Card(
         elevation: 4,
         color: isSelected
-            ? const Color.fromARGB(224, 165, 147, 224)
+            ? AppColors.blue
             : Colors.white,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -72,7 +73,7 @@ class NextButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color.fromARGB(224, 165, 147, 224),
+          backgroundColor: AppColors.navy,
           minimumSize: const Size(double.infinity, 50),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
