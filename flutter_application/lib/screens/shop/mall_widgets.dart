@@ -1,8 +1,12 @@
+// mall_widgets.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/models/MallItem.dart';
-import 'package:flutter_application_1/widgets/mall_item_card.dart';
+import 'package:flutter_application_1/screens/shop/filter.dart';
+import 'package:flutter_application_1/utils/constants.dart';
+import 'package:flutter_application_1/widgets/mall_item_card.dart';  // Filter 관련 import 추가
 
 class MallWidgets {
+  // 기존의 buildCategoryFilters 메소드와 동일하게 필터를 처리
   static Widget buildCategoryFilters({
     required List<String> categories,
     required String selectedCategory,
@@ -24,6 +28,17 @@ class MallWidgets {
     );
   }
 
+  // 새로운 필터 위젯 추가 (AdvancedFilterWidget)
+  static Widget buildAdvancedFilter({
+    required FilterOptions currentFilters,
+    required Function(FilterOptions) onFilterChanged,
+  }) {
+    return AdvancedFilterWidget(
+      currentFilters: currentFilters,
+      onFilterChanged: onFilterChanged,
+    );
+  }
+
   static Widget _buildFilterChip({
     required String label,
     required bool isSelected,
@@ -36,7 +51,7 @@ class MallWidgets {
         selected: isSelected,
         onSelected: (_) => onSelected(label),
         backgroundColor: Colors.white,
-        selectedColor: const Color.fromARGB(224, 165, 147, 224),
+        selectedColor: AppColors.navy,
         labelStyle: TextStyle(
           color: isSelected ? Colors.white : Colors.black87,
         ),
@@ -92,7 +107,7 @@ class _LoadingIndicator extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(224, 165, 147, 224)),
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.blue),
           ),
           SizedBox(height: 16),
           Text(

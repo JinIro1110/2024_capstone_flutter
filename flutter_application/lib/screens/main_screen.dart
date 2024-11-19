@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/models/ClosetItem.dart';
 import 'package:flutter_application_1/screens/auth/edit_profile.dart';
 import 'package:flutter_application_1/screens/recommend/style_screen.dart';
-import 'package:flutter_application_1/screens/video/video.dart';
+import 'package:flutter_application_1/services/camera_service.dart';
 import 'package:flutter_application_1/utils/constants.dart';
 import 'package:flutter_application_1/widgets/bottom_navigation.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_application_1/auth/login_logic.dart';
-import 'package:flutter_application_1/screens/3d_model/create_model.dart';
 import 'package:flutter_application_1/screens/closet/closet_screen.dart';
 import 'package:flutter_application_1/screens/shop/mall.dart';
 
@@ -27,7 +26,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  // 상태
+  final CameraService _cameraService = CameraService();
   int _selectedIndex = 1;
   List<ClosetItem> closetItems = [];
   DocumentSnapshot? lastDocument;
@@ -87,10 +86,24 @@ class _MyHomePageState extends State<MyHomePage> {
       _buildDrawerItem(
         icon: Icons.camera,
         title: '모델 생성',
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const VideoRecorderWidget()),
-        ),
+        onTap: () async {
+          final user = Provider.of<LoginAuth>(context, listen: false).user;
+          if (user == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('사용자 정보를 찾을 수 없습니다.')),
+            );
+            return;
+          }
+
+          // Close drawer if it's open
+          Navigator.pop(context);
+
+          // Call camera service
+          await _cameraService.takeAndUploadPhoto(
+            uid: user.uid,
+            context: context,
+          );
+        },
       ),
       _buildDrawerItem(
         icon: Icons.settings,
@@ -142,7 +155,6 @@ class _MyHomePageState extends State<MyHomePage> {
     switch (index) {
       // case 0: return const VideoRecorderWidget();
       case 0:
-        return const CreateModelScreen();
       case 1:
         return ClosetScreen(
           initialItems: closetItems,

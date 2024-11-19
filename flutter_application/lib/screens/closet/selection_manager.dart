@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -6,21 +8,19 @@ import 'package:flutter_application_1/models/ClosetItem.dart';
 import 'package:provider/provider.dart';
 
 class SelectionManager {
-  List<ClosetItem> selectedItems = []; // List to manage selected items
+  List<ClosetItem> selectedItems = []; // 선택된 아이템
 
-  // Item selection/deselection
   void toggleSelection(ClosetItem item, Function(String) onError) {
     if (selectedItems.contains(item)) {
-      selectedItems.remove(item); // Deselect item
+      selectedItems.remove(item);
     } else {
       if (_isPartAlreadySelected(item, onError)) {
-        return; // Prevent multiple selections of the same part
+        return;
       }
-      selectedItems.add(item); // Add item to selection
+      selectedItems.add(item);
     }
   }
 
-  // Check if part (top/bottom) is already selected
   bool _isPartAlreadySelected(ClosetItem item, Function(String) onError) {
     if (item.part == '상의' && selectedItems.any((i) => i.part == '상의')) {
       onError('이미 상의가 선택되어 있습니다');
@@ -32,23 +32,19 @@ class SelectionManager {
     return false;
   }
 
-  // Toggle deletion mode for items
   void toggleDeletion(ClosetItem item) {
     if (selectedItems.contains(item)) {
-      selectedItems.remove(item); // Deselect item in deletion mode
+      selectedItems.remove(item);
     } else {
-      selectedItems.add(item); // Add item to selection in deletion mode
+      selectedItems.add(item);
     }
   }
 
-  // Delete selected items from Firestore and Firebase Storage
-// Delete selected items from Firestore and Firebase Storage
   Future<void> deleteSelectedItems(
       BuildContext context, Function(String) onError) async {
     final firestore = FirebaseFirestore.instance;
     final storage = FirebaseStorage.instance;
 
-    // Use Provider to get LoginAuth instance
     LoginAuth loginAuth = Provider.of<LoginAuth>(context, listen: false);
     String? userId = loginAuth.user?.uid;
 
@@ -86,5 +82,95 @@ class SelectionManager {
   // Clear all selected items
   void clearSelection() {
     selectedItems.clear();
+  }
+
+  Future<String?> _showNameInputDialog(BuildContext context) async {
+    String? outfitName;
+
+    return showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('코디 이름 입력'),
+          content: TextField(
+            decoration: InputDecoration(
+              hintText: '코디 이름을 입력해주세요',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              outfitName = value;
+            },
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('확인'),
+              onPressed: () {
+                Navigator.of(context).pop(outfitName);
+              },
+            ),
+            TextButton(
+              child: Text('취소'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> sendTopBottomToServer(
+      String userId, BuildContext context) async {
+    // 상의와 하의 선택 확인
+    final hasTop = selectedItems.any((item) => item.part == '상의');
+    final hasBottom = selectedItems.any((item) => item.part == '하의');
+
+    if (!hasTop || !hasBottom) {
+      return {'error': '상의와 하의를 각각 선택해주세요.'};
+    }
+
+    // 이름 입력 다이얼로그 표시
+    final outfitName = await _showNameInputDialog(context);
+
+    // 사용자가 취소했거나 이름을 입력하지 않은 경우
+    if (outfitName == null || outfitName.isEmpty) {
+      return {'error': '코디 이름을 입력해주세요.'};
+    }
+
+    final topItem = selectedItems.firstWhere((item) => item.part == '상의');
+    final bottomItem = selectedItems.firstWhere((item) => item.part == '하의');
+
+    final url = Uri.parse('http://192.168.0.7:3000/model');
+    final data = {
+      'userId': userId,
+      'outfitName': outfitName, // 새로 추가된 이름 필드
+      'top': {
+        'imageUrl': topItem.imageUrl,
+        'style': topItem.style,
+        'size': topItem.size,
+      },
+      'bottom': {
+        'imageUrl': bottomItem.imageUrl,
+        'style': bottomItem.style,
+        'size': bottomItem.size,
+      }
+    };
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(data),
+      );
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': '데이터 전송 성공'};
+      } else {
+        return {'error': '데이터 전송 실패: ${response.statusCode}'};
+      }
+    } catch (e) {
+      return {'error': '오류 발생: $e'};
+    }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/utils/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_application_1/auth/sign_up_data.dart';
 import 'package:flutter_application_1/screens/auth/login.dart';
@@ -47,13 +48,13 @@ class _SignUp2State extends State<SignUp2> {
   Future<void> _initializeUserStorage(String uid) async {
     try {
       // 사용자의 기본 디렉토리 구조 생성
-      final storageRef = FirebaseStorage.instance.ref().child('closet/$uid');
+      final storageRef = FirebaseStorage.instance.ref().child('users/$uid');
 
       // 빈 텍스트 파일을 업로드하여 디렉토리 생성 (Firebase Storage는 빈 디렉토리를 허용하지 않음)
       await storageRef.child('.init').putString('initialized');
 
       // 하위 디렉토리들 생성
-      final directories = ['images', 'thumbnails', 'models'];
+      final directories = ['images', 'models'];
       for (String dir in directories) {
         await storageRef.child('$dir/.init').putString('initialized');
       }
@@ -140,69 +141,73 @@ class _SignUp2State extends State<SignUp2> {
           },
         ),
         title: const Text('회원가입'),
+        backgroundColor: AppColors.navy,
+        foregroundColor: Colors.white,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                _buildTextField(
-                  controller: _phoneController,
-                  labelText: '전화번호',
-                  helperText: '전화번호를 입력해주세요.',
-                  keyboardType: TextInputType.phone,
-                  onChanged: (value) {
-                    // 포맷된 전화번호를 컨트롤러에 설정
-                    final formattedNumber = formatPhoneNumber(value);
-                    _phoneController.value = TextEditingValue(
-                      text: formattedNumber,
-                      selection: TextSelection.collapsed(
-                          offset: formattedNumber.length),
-                    );
-                    // Provider에는 하이픈을 제거한 숫자만 저장
-                    signUpData.setPhone(formattedNumber.replaceAll('-', ''));
-                  },
-                  validator: _validatePhone,
-                ),
-                const SizedBox(height: 20.0),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _buildTextField(
-                        controller: _nameController,
-                        labelText: '이름',
-                        helperText: '이름을 입력해주세요.',
-                        onChanged: (value) => signUpData.setName(value),
-                        validator: _validateName,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  _buildTextField(
+                    controller: _phoneController,
+                    labelText: '전화번호',
+                    helperText: '전화번호를 입력해주세요.',
+                    keyboardType: TextInputType.phone,
+                    onChanged: (value) {
+                      // 포맷된 전화번호를 컨트롤러에 설정
+                      final formattedNumber = formatPhoneNumber(value);
+                      _phoneController.value = TextEditingValue(
+                        text: formattedNumber,
+                        selection: TextSelection.collapsed(
+                            offset: formattedNumber.length),
+                      );
+                      // Provider에는 하이픈을 제거한 숫자만 저장
+                      signUpData.setPhone(formattedNumber.replaceAll('-', ''));
+                    },
+                    validator: _validatePhone,
+                  ),
+                  const SizedBox(height: 20.0),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _nameController,
+                          labelText: '이름',
+                          helperText: '이름을 입력해주세요.',
+                          onChanged: (value) => signUpData.setName(value),
+                          validator: _validateName,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 20.0),
-                    _buildGenderDropdown(),
-                  ],
-                ),
-                const SizedBox(height: 20.0),
-                _buildDatePicker(),
-                const SizedBox(height: 20.0),
-                _buildTextField(
-                  controller: _heightController,
-                  labelText: '신장 (cm)',
-                  helperText: '신장을 cm 단위로 입력해주세요',
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) =>
-                      signUpData.setHeight(double.tryParse(value) ?? 0.0),
-                  validator: _validateHeight,
-                ),
-                const SizedBox(height: 20.0),
-                ElevatedButton(
-                  onPressed: _registerUser,
-                  child: const Text('회원가입 완료'),
-                ),
-                const SizedBox(height: 20.0),
-              ],
+                      const SizedBox(width: 20.0),
+                      _buildGenderDropdown(),
+                    ],
+                  ),
+                  const SizedBox(height: 20.0),
+                  _buildDatePicker(),
+                  const SizedBox(height: 20.0),
+                  _buildTextField(
+                    controller: _heightController,
+                    labelText: '신장 (cm)',
+                    helperText: '신장을 cm 단위로 입력해주세요',
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) =>
+                        signUpData.setHeight(double.tryParse(value) ?? 0.0),
+                    validator: _validateHeight,
+                  ),
+                  const SizedBox(height: 20.0),
+                  ElevatedButton(
+                    onPressed: _registerUser,
+                    child: const Text('회원가입 완료'),
+                  ),
+                  const SizedBox(height: 20.0),
+                ],
+              ),
             ),
           ),
         ),

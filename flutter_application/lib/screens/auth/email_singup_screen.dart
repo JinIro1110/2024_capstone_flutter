@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/utils/constants.dart';
 import 'user_info_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_application_1/auth/sign_up_data.dart';
@@ -46,6 +47,8 @@ class _SignUp1Content extends State<SignUp1> {
           },
         ),
         title: const Text('회원가입'),
+        backgroundColor: AppColors.navy,
+        foregroundColor: Colors.white,
       ),
       body: SafeArea(
         child: Padding(

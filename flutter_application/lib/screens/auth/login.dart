@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/services/auth_service.dart';
+import 'package:flutter_application_1/widgets/alert.dart';
 import 'find_id_screen.dart';
 import 'find_password_screen.dart';
 import 'package:provider/provider.dart';
@@ -186,19 +187,10 @@ class _LoginState extends State<Login> {
         _socialLoginButton(
           'assets/images/google.png',
           () async {
-            UserCredential? result = await AuthService().signInWithGoogle();
-            if (result != null) {
-              String email = FirebaseAuth.instance.currentUser!.email!;
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  // builder: (context) => SignUp1(email: email),
-                  builder: (context) => const SignUp1(),
-                ),
-              );
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Google sign in failed')));
+            try {
+              await AuthService().googleSocialLogin(context);
+            } catch (error) {
+              _showErrorDialog('Google Sign-In Failed', error.toString());
             }
           },
         ),
@@ -210,6 +202,19 @@ class _LoginState extends State<Login> {
     return TextButton(
       onPressed: onPressed,
       child: Image.asset(assetName, width: 24, height: 24),
+    );
+  }
+
+  void showErrorDialog(BuildContext context, String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => Alert(
+        title: title,
+        content: message,
+        onConfirm: () {
+          // Add any additional logic here
+        },
+      ),
     );
   }
 

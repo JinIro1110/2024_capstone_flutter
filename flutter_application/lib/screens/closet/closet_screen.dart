@@ -1,13 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/auth/login_logic.dart';
 import 'package:flutter_application_1/screens/closet/selection_manager.dart';
 import 'package:flutter_application_1/services/closet_data.dart';
 import 'package:flutter_application_1/models/ClosetItem.dart';
-import 'package:flutter_application_1/models/Metadata.dart';
-import 'package:flutter_application_1/screens/closet/selected_item.dart';
 import 'package:flutter_application_1/services/firebase_data.dart';
 import 'package:flutter_application_1/utils/constants.dart';
 import 'package:image_picker/image_picker.dart';
@@ -148,36 +148,44 @@ class _ClosetScreenState extends State<ClosetScreen> {
     });
   }
 
-  Future<void> completeSelectionMode() async {
-    // Navigate to a new screen with selected items
-    if (_selectionManager.selectedItems.length == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SelectedItemsScreen(
-            selectedItems: _selectionManager.selectedItems,
-            userId: '',
-          ),
-        ),
+Future<void> completeSelectionMode() async {
+  final user = Provider.of<LoginAuth>(context, listen: false).user;
+  if (user == null) return;
+
+  if (_selectionManager.selectedItems.length == 2) {
+    // 서버로 데이터 전송
+    final result = await _selectionManager.sendTopBottomToServer(user.uid, context);
+    
+    if (result['error'] != null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['error'])),
       );
-      // Clear selection after navigation
+    } else {
+      // 성공시 선택 모드 종료
       setState(() {
         _selectionManager.clearSelection();
         isSelectionMode = false;
       });
-    } else {
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select both a top and bottom'),
-        ),
+        const SnackBar(content: Text('선택한 의상의 모델을 생성 시작합니다. 완성되기까지 시간이 걸립니다.')),
       );
     }
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('상하의를 선택해주세요.'),
+      ),
+    );
   }
+}
 
   Future<void> completeDeleteMode() async {
     if (_selectionManager.selectedItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select items to delete')),
+        const SnackBar(content: Text('삭제할 아이템을 선택해주세요.')),
       );
       return;
     }
@@ -187,18 +195,19 @@ class _ClosetScreenState extends State<ClosetScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Confirm Deletion'),
+          title: const Text('삭제 확인'),
           content: Text(
-              '삭제하시겠습니까? ${_selectionManager.selectedItems.length} items?'),
+              '${_selectionManager.selectedItems.length}개의 아이템을 삭제하시겠습니까?'),
           actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('예'),
+            ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text('아니오'),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('네'),
-            ),
+            
           ],
         );
       },

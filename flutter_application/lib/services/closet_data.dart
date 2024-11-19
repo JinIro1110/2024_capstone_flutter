@@ -8,7 +8,7 @@ class ClosetDataService {
   // 초기 데이터 로드
   Future<Map<String, dynamic>> loadInitialClosetData(String userId) async {
     try {
-      final collectionPath = 'closet/$userId/images';
+      final collectionPath = 'users/$userId/images';
       
       final snapshot = await _firestore
           .collection(collectionPath)
@@ -41,7 +41,7 @@ class ClosetDataService {
   ) async {
     try {
       final snapshot = await _firestore
-          .collection('closet/$userId/images')
+          .collection('users/$userId/images')
           .orderBy('timestamp', descending: true)
           .startAfterDocument(lastDocument)
           .limit(pageSize)
@@ -74,7 +74,7 @@ class ClosetDataService {
     required String part,
   }) async {
     try {
-      final docRef = await _firestore.collection('closet/$userId/images').add({
+      final docRef = await _firestore.collection('users/$userId/images').add({
         'imageUrl': imageUrl,
         'style': style,
         'size': size,

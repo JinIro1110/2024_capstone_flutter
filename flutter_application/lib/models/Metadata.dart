@@ -27,7 +27,7 @@ class _MetadataInputDialogState extends State<MetadataInputDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Clothing Metadata'),
+      title: const Text('데이터 입력'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -85,13 +85,7 @@ class _MetadataInputDialogState extends State<MetadataInputDialog> {
       ),
       actions: <Widget>[
         TextButton(
-          child: const Text('Cancel'),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        TextButton(
-          child: const Text('Save'),
+          child: const Text('저장'),
           onPressed: () {
             // 선택된 값이 모두 유효하면 클로징
             if (selectedStyle.isNotEmpty && selectedSize > 0) {
@@ -104,6 +98,12 @@ class _MetadataInputDialogState extends State<MetadataInputDialog> {
                 const SnackBar(content: Text('Please fill all fields')),
               );
             }
+          },
+        ),
+        TextButton(
+          child: const Text('취소'),
+          onPressed: () {
+            Navigator.pop(context);
           },
         ),
       ],
