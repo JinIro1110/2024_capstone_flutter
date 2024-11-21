@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/models/ClosetItem.dart';
+import 'package:flutter_application_1/screens/3d_model/model_player.dart';
 import 'package:flutter_application_1/screens/auth/edit_profile.dart';
 import 'package:flutter_application_1/screens/recommend/style_screen.dart';
 import 'package:flutter_application_1/services/camera_service.dart';
@@ -155,6 +156,7 @@ class _MyHomePageState extends State<MyHomePage> {
     switch (index) {
       // case 0: return const VideoRecorderWidget();
       case 0:
+        return const VideoGridScreen();
       case 1:
         return ClosetScreen(
           initialItems: closetItems,

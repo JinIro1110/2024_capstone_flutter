@@ -19,7 +19,7 @@ class ClosetDataService {
       final items = snapshot.docs
           .map((doc) => ClosetItem.fromFirestore(doc))
           .toList();
-
+  
       return {
         'items': items,
         'lastDocument': snapshot.docs.isNotEmpty ? snapshot.docs.last : null,

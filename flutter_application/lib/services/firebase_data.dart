@@ -68,7 +68,7 @@ class ImageUploadService {
 
       // 이미지 업로드
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final ref = storage.ref('closet/$userId/images/$fileName');
+      final ref = storage.ref('users/$userId/images/$fileName');
 
       await ref.putFile(File(photo.path));
       final downloadUrl = await ref.getDownloadURL();

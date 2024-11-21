@@ -141,19 +141,15 @@ class SelectionManager {
     final topItem = selectedItems.firstWhere((item) => item.part == '상의');
     final bottomItem = selectedItems.firstWhere((item) => item.part == '하의');
 
-    final url = Uri.parse('http://192.168.0.7:3000/model');
+    final url = Uri.parse('http://172.30.5.229:3000/model');
     final data = {
       'userId': userId,
       'outfitName': outfitName, // 새로 추가된 이름 필드
       'top': {
         'imageUrl': topItem.imageUrl,
-        'style': topItem.style,
-        'size': topItem.size,
       },
       'bottom': {
         'imageUrl': bottomItem.imageUrl,
-        'style': bottomItem.style,
-        'size': bottomItem.size,
       }
     };
 

@@ -65,19 +65,27 @@ class _ClosetScreenState extends State<ClosetScreen> {
 
     setState(() => isLoading = true);
 
-    final result = await _closetDataService.loadInitialClosetData(user.uid);
+    try {
+      final result = await _closetDataService.loadInitialClosetData(user.uid);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (result['error'] != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['error'])),
-      );
-    } else {
-      setState(() {
-        items = result['items'];
-        lastDocument = result['lastDocument'];
-      });
+      if (result['error'] != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['error'])),
+        );
+      } else {
+        setState(() {
+          items = result['items'];
+          lastDocument = result['lastDocument'];
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('데이터 로드 중 오류 발생: $e')),
+        );
+      }
     }
 
     setState(() => isLoading = false);
@@ -85,21 +93,32 @@ class _ClosetScreenState extends State<ClosetScreen> {
 
   Future<void> loadMoreData() async {
     if (isLoading || lastDocument == null) return;
+
     final user = Provider.of<LoginAuth>(context, listen: false).user;
     if (user == null) return;
 
     setState(() => isLoading = true);
 
-    final result =
-        await _closetDataService.loadMoreClosetData(user.uid, lastDocument!);
+    try {
+      final result =
+          await _closetDataService.loadMoreClosetData(user.uid, lastDocument!);
 
-    if (result['error'] != null) {
-      print(result['error']);
-    } else {
-      setState(() {
-        items.addAll(result['items']);
-        lastDocument = result['lastDocument'];
-      });
+      if (!mounted) return;
+
+      if (result['error'] != null) {
+        print(result['error']);
+      } else {
+        setState(() {
+          items.addAll(result['items']);
+          lastDocument = result['lastDocument'];
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('데이터 추가 로드 중 오류 발생: $e')),
+        );
+      }
     }
 
     setState(() => isLoading = false);
@@ -148,39 +167,41 @@ class _ClosetScreenState extends State<ClosetScreen> {
     });
   }
 
-Future<void> completeSelectionMode() async {
-  final user = Provider.of<LoginAuth>(context, listen: false).user;
-  if (user == null) return;
+  Future<void> completeSelectionMode() async {
+    final user = Provider.of<LoginAuth>(context, listen: false).user;
+    if (user == null) return;
 
-  if (_selectionManager.selectedItems.length == 2) {
-    // 서버로 데이터 전송
-    final result = await _selectionManager.sendTopBottomToServer(user.uid, context);
-    
-    if (result['error'] != null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['error'])),
-      );
+    if (_selectionManager.selectedItems.length == 2) {
+      // 서버로 데이터 전송
+      final result =
+          await _selectionManager.sendTopBottomToServer(user.uid, context);
+
+      if (result['error'] != null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['error'])),
+        );
+      } else {
+        // 성공시 선택 모드 종료
+        setState(() {
+          _selectionManager.clearSelection();
+          isSelectionMode = false;
+        });
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('선택한 의상의 모델을 생성 시작합니다. 완성되기까지 시간이 걸립니다.')),
+        );
+      }
     } else {
-      // 성공시 선택 모드 종료
-      setState(() {
-        _selectionManager.clearSelection();
-        isSelectionMode = false;
-      });
-
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('선택한 의상의 모델을 생성 시작합니다. 완성되기까지 시간이 걸립니다.')),
+        const SnackBar(
+          content: Text('상하의를 선택해주세요.'),
+        ),
       );
     }
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('상하의를 선택해주세요.'),
-      ),
-    );
   }
-}
 
   Future<void> completeDeleteMode() async {
     if (_selectionManager.selectedItems.isEmpty) {
@@ -207,7 +228,6 @@ Future<void> completeSelectionMode() async {
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text('아니오'),
             ),
-            
           ],
         );
       },
