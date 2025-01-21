@@ -37,13 +37,13 @@ class _ClosetScreenState extends State<ClosetScreen> {
   final _selectionManager = SelectionManager();
   final _dataService = ImageUploadService();
 
-  List<ClosetItem> items = [];
-  bool isLoading = false;
-  DocumentSnapshot? lastDocument;
-  static const int pageSize = 10;
+  List<ClosetItem> items = []; // 유저 의상
+  bool isLoading = false; // 로딩 상태
+  DocumentSnapshot? lastDocument; // 마지막 문서
+  static const int pageSize = 10; // 한 페이지에 10개
 
-  bool isSelectionMode = false; // Selection mode toggle
-  bool isDeleteMode = false;
+  bool isSelectionMode = false; // 선택모드
+  bool isDeleteMode = false; // 삭제 모드
 
   @override
   void initState() {
@@ -124,6 +124,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
     setState(() => isLoading = false);
   }
 
+// 사진 촬영
   Future<void> takePicture() async {
     final user = Provider.of<LoginAuth>(context, listen: false).user;
     if (user == null) return;
@@ -167,6 +168,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
     });
   }
 
+// 선택 모드 관리
   Future<void> completeSelectionMode() async {
     final user = Provider.of<LoginAuth>(context, listen: false).user;
     if (user == null) return;
@@ -175,25 +177,11 @@ class _ClosetScreenState extends State<ClosetScreen> {
       // 서버로 데이터 전송
       final result =
           await _selectionManager.sendTopBottomToServer(user.uid, context);
-
-      if (result['error'] != null) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['error'])),
-        );
-      } else {
-        // 성공시 선택 모드 종료
-        setState(() {
-          _selectionManager.clearSelection();
-          isSelectionMode = false;
-        });
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('선택한 의상의 모델을 생성 시작합니다. 완성되기까지 시간이 걸립니다.')),
-        );
-      }
+      setState(() {
+        _selectionManager.clearSelection();
+        isSelectionMode = false;
+      });
+      
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -203,6 +191,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
     }
   }
 
+// 삭제 모드 관리
   Future<void> completeDeleteMode() async {
     if (_selectionManager.selectedItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -211,22 +200,68 @@ class _ClosetScreenState extends State<ClosetScreen> {
       return;
     }
 
-    // Show confirmation dialog
+    // 확인 메시지
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('삭제 확인'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          backgroundColor: Colors.white,
+          title: Text(
+            '삭제 확인',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.navy,
+            ),
+          ),
           content: Text(
-              '${_selectionManager.selectedItems.length}개의 아이템을 삭제하시겠습니까?'),
+            '${_selectionManager.selectedItems.length}개의 아이템을 삭제하시겠습니까?',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.black87,
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('예'),
+              style: TextButton.styleFrom(
+                backgroundColor: AppColors.navy,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+              ),
+              child: Text(
+                '예',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('아니오'),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.grey[200],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+              ),
+              child: Text(
+                '아니오',
+                style: TextStyle(
+                  color: AppColors.navy,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );
@@ -363,7 +398,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
                             crossAxisCount: 2,
                             crossAxisSpacing: 10,
                             mainAxisSpacing: 10,
-                            childAspectRatio: 0.75,
+                            childAspectRatio: 0.7,
                           ),
                           // 여기서 항상 최소 1개 아이템(카메라 버튼)이 있도록 설정
                           itemCount: items.isEmpty ? 1 : items.length + 1,

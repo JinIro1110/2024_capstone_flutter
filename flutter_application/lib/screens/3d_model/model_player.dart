@@ -1,9 +1,13 @@
+import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/auth/login_logic.dart';
+import 'package:flutter_application_1/utils/constants.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 
 class VideoGridScreen extends StatefulWidget {
   const VideoGridScreen({Key? key}) : super(key: key);
@@ -24,9 +28,42 @@ class _VideoGridScreenState extends State<VideoGridScreen> {
     _fetchVideoList();
   }
 
+  Future<String?> _generateThumbnail(String videoUrl, String videoName) async {
+    try {
+      // 임시 디렉토리 가져오기
+      final tempDir = await getTemporaryDirectory();
+      final thumbnailPath = '${tempDir.path}/${videoName}_thumb.jpg';
+
+      // 썸네일 생성
+      final thumbnailFile = await VideoThumbnail.thumbnailFile(
+        video: videoUrl,
+        thumbnailPath: thumbnailPath,
+        imageFormat: ImageFormat.JPEG,
+        maxHeight: 200,
+        quality: 75,
+      );
+
+      if (thumbnailFile == null) return null;
+
+      final User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return null;
+
+      // Firebase Storage에 썸네일 업로드
+      final thumbnailRef = _storage.ref().child(
+          'users/${currentUser.uid}/models/${videoName.replaceAll('.mp4', '_thumb.jpg')}');
+
+      await thumbnailRef.putFile(File(thumbnailFile));
+
+      // 썸네일 URL 반환
+      return await thumbnailRef.getDownloadURL();
+    } catch (e) {
+      print('Thumbnail generation error: $e');
+      return null;
+    }
+  }
+
   Future<void> _fetchVideoList() async {
-    final loginAuth = Provider.of<LoginAuth>(context, listen: false);
-    final User? currentUser = loginAuth.user;
+    final User? currentUser = FirebaseAuth.instance.currentUser;
 
     try {
       if (currentUser == null) {
@@ -42,7 +79,6 @@ class _VideoGridScreenState extends State<VideoGridScreen> {
 
       try {
         final result = await storageRef.listAll();
-
         if (result.items.isEmpty) {
           setState(() {
             videoList = [];
@@ -54,14 +90,25 @@ class _VideoGridScreenState extends State<VideoGridScreen> {
         final videos = await Future.wait(result.items
             .where((item) => item.name.endsWith('.mp4'))
             .map((item) async {
-          final url = await item.getDownloadURL();
+          final videoUrl = await item.getDownloadURL();
 
-          // URL을 콘솔에 출력
-          print('Video URL: $url');
+          // 기존 썸네일 확인
+          final thumbnailRef = _storage.ref().child(
+              'users/${currentUser.uid}/models/${item.name.replaceAll('.mp4', '_thumb.jpg')}');
+
+          String thumbnailUrl = '';
+          try {
+            thumbnailUrl = await thumbnailRef.getDownloadURL();
+          } catch (e) {
+            // 기존 썸네일이 없으면 새로 생성
+            thumbnailUrl = await _generateThumbnail(videoUrl, item.name) ?? '';
+          }
+
           return {
             'id': item.name,
             'name': item.name.replaceAll('.mp4', ''),
-            'url': url,
+            'url': videoUrl,
+            'thumbnail': thumbnailUrl,
           };
         }).toList());
 
@@ -142,7 +189,22 @@ class _VideoGridScreenState extends State<VideoGridScreen> {
       return Scaffold(body: _buildErrorUI(_errorMessage));
 
     return Scaffold(
-      appBar: AppBar(title: Text('내 모델 비디오 (${videoList.length}개)')),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Icon(Icons.video_library, size: 20),
+            SizedBox(width: 8),
+            Text(
+              videoList.isEmpty
+                  ? '내 모델 비디오'
+                  : '내 모델 비디오 (총 ${videoList.length}개)',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
       body: videoList.isEmpty
           ? const Center(child: Text('아직 저장된 비디오가 없습니다.'))
           : GridView.builder(
@@ -158,7 +220,6 @@ class _VideoGridScreenState extends State<VideoGridScreen> {
                 final video = videoList[index];
                 return GestureDetector(
                   onTap: () {
-                    // 비디오 클릭 시 화면 이동
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -180,10 +241,13 @@ class _VideoGridScreenState extends State<VideoGridScreen> {
                             Expanded(
                               child: Container(
                                 color: Colors.black54,
-                                child: const Center(
-                                  child: Icon(Icons.video_library,
-                                      size: 50, color: Colors.white),
-                                ),
+                                child: video['thumbnail'] != ''
+                                    ? Image.network(video['thumbnail']!,
+                                        fit: BoxFit.cover)
+                                    : const Center(
+                                        child: Icon(Icons.video_library,
+                                            size: 50, color: Colors.white),
+                                      ),
                               ),
                             ),
                             Padding(
@@ -205,7 +269,8 @@ class _VideoGridScreenState extends State<VideoGridScreen> {
                           top: 8,
                           right: 8,
                           child: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.white),
+                            icon:
+                                const Icon(Icons.delete, color: AppColors.navy),
                             onPressed: () => _deleteVideo(video),
                           ),
                         ),
@@ -226,7 +291,10 @@ class VideoPlayerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('비디오 재생')),
+      appBar: AppBar(
+          backgroundColor: AppColors.navy,
+          foregroundColor: AppColors.white,
+          title: const Text('비디오 재생')),
       body: Center(
         child: VideoPlayerWidget(videoUrl: videoUrl),
       ),
@@ -280,6 +348,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       // 초기화 후 상태 확인
       if (_controller!.value.isInitialized) {
         _controller!.addListener(_videoPlayerListener);
+        _controller!.setLooping(true); // 무한 반복 설정
 
         if (!_isDisposed) {
           setState(() {

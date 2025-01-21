@@ -6,51 +6,55 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance; // Firebase 인증 인스턴스
 
+  // Google 소셜 로그인
   Future<void> googleSocialLogin(BuildContext context) async {
     try {
       // Google Sign-In
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      final GoogleSignInAuthentication googleAuth =
+      final GoogleSignInAuthentication googleAuth = 
           await googleUser!.authentication;
+
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
       // Firebase Sign-In
-      final userCredential =
+      final userCredential = 
           await FirebaseAuth.instance.signInWithCredential(credential);
       final user = userCredential.user;
       if (user == null) {
         throw Exception("Failed to retrieve user info.");
       }
 
-      // Firestore user check
+      // Firestore 사용자 확인
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
+
       if (userDoc.exists) {
-        // Existing user, navigate to home screen
+        // 기존 사용자
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MyHomePage()),
         );
       } else {
-        // New user, navigate to user info screen
+        // 신규 사용자
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => SocialUserInfoScreen(user: user)),
+          MaterialPageRoute(
+              builder: (context) => SocialUserInfoScreen(user: user)),
         );
       }
     } catch (e) {
       print("Error during Google Sign-In: $e");
-      // Handle the error appropriately, e.g., show a snackbar or dialog
     }
   }
 
+  // 사용자 이메일 찾기
   Future<String?> findUserEmail(String name, String phone, String birth) async {
     try {
       final snapshot = await FirebaseFirestore.instance
@@ -62,18 +66,17 @@ class AuthService {
           .get();
 
       if (snapshot.docs.isNotEmpty) {
-        return snapshot.docs.first.get('email');
+        return snapshot.docs.first.get('email'); // 이메일 반환
       } else {
-        return null;
+        return null; // 사용자 없음
       }
     } catch (e) {
       print("Error finding user email: $e");
-      return null;
+      return null; // 에러 발생
     }
   }
 
-  // phone auth credential로 수정??
-
+  // 비밀번호 찾기
   Future<bool> findUserPassword(String email, String name, String birth) async {
     try {
       final snapshot = await FirebaseFirestore.instance
@@ -85,14 +88,14 @@ class AuthService {
           .get();
 
       if (snapshot.docs.isNotEmpty) {
-        await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+        await FirebaseAuth.instance.sendPasswordResetEmail(email: email); // 비밀번호 재설정 이메일 전송
         return true;
       } else {
-        print('User not found');
+        print('User not found'); // 사용자 없음
         return false;
       }
     } catch (e) {
-      print('Error sending password reset email: $e');
+      print('Error sending password reset email: $e'); // 에러 발생
       return false;
     }
   }

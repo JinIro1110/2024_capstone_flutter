@@ -18,11 +18,11 @@ class _MallScreenState extends State<MallScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final ScrollController _scrollController = ScrollController();
 
-  List<MallItem> items = [];
-  bool isLoading = false;
-  bool hasMore = true;
-  final int limit = 20;
-  DocumentSnapshot? lastDocument;
+  List<MallItem> items = []; // 아이템 목록 저장
+  bool isLoading = false; // 로딩중
+  bool hasMore = true; // 추가 데이터
+  final int limit = 20; // 로드 개수
+  DocumentSnapshot? lastDocument; // 마지막 문서
   bool _disposed = false;
 
   // 기본 필터 옵션 설정
@@ -59,18 +59,19 @@ class _MallScreenState extends State<MallScreen> {
     Query query =
         _firestore.collection('items').orderBy('Code', descending: true);
 
-    // 메인 카테고리 필터
     if (currentFilters.mainCategory != null &&
         currentFilters.mainCategory != MainCategory.all) {
-          print(query);
-      query = query.where('Category.Main',
-          isEqualTo: _getCategoryValue(currentFilters.mainCategory!));
+      query = query.where(
+        'Category.Main',
+        isEqualTo: _getCategoryValue(currentFilters.mainCategory!),
+      );
     }
 
-    // 스타일 필터
     if (currentFilters.style != null && currentFilters.style != Style.all) {
-      query = query.where('Style',
-          isEqualTo: _getStyleValue(currentFilters.style!));
+      query = query.where(
+        'Category.Sub',
+        isEqualTo: _getStyleValue(currentFilters.style!),
+      );
     }
 
     return query.limit(limit);
@@ -102,15 +103,14 @@ class _MallScreenState extends State<MallScreen> {
   String _getStyleValue(Style style) {
     switch (style) {
       case Style.casual:
-        return '캐주얼';
+        return '캐주얼'; // Firestore의 Category.Sub 값과 동일해야 함
+      case Style.sporty:
+        return '스포티'; // Firestore의 Category.Sub 값과 동일해야 함
       case Style.street:
-        return '스트릿';
-      case Style.americana:
-        return '아메카지';
-      case Style.minimal:
-        return '미니멀';
+        return '스트릿/빈티지'; // Firestore의 Category.Sub 값과 동일해야 함
       case Style.all:
-        return '전체';
+      default:
+        return ''; // '전체'는 필터링에 사용되지 않으므로 빈 문자열 반환
     }
   }
 
@@ -240,7 +240,7 @@ class _MallScreenState extends State<MallScreen> {
       padding: const EdgeInsets.all(12.0),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.75,
+        childAspectRatio: 0.5,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),

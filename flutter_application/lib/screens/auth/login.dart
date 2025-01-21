@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/services/auth_service.dart';
+import 'package:flutter_application_1/utils/constants.dart';
 import 'package:flutter_application_1/widgets/alert.dart';
 import 'find_id_screen.dart';
 import 'find_password_screen.dart';
@@ -23,11 +24,13 @@ class _LoginState extends State<Login> {
 
   @override
   void dispose() {
+    // 컨트롤러 메모리 해제
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
+  // 이메일 로그인 메서드
   Future<void> _loginWithEmail() async {
     if (_formKey.currentState!.validate()) {
       try {
@@ -35,16 +38,18 @@ class _LoginState extends State<Login> {
               _emailController.text.trim(),
               _passwordController.text,
             );
-        // 로그인 성공 후 처리 (예: 홈 화면으로 이동)
+        // 로그인 성공 후 홈 화면으로 이동
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const MyHomePage()),
         );
       } catch (error) {
-        _showErrorDialog('로그인 실패', '이메일과 비밀번호를 확인하고 다시 시도해주세요.');
+        // 로그인 실패 시 에러 다이얼로그 표시
+        _showErrorDialog('로그인 실패', '이메일과 비밀번호을 확인해주세요.');
       }
     }
   }
 
+  // 이메일 회원가입 화면으로 이동
   Future<void> _signUpWithEmail() async {
     Navigator.push(
       context,
@@ -52,6 +57,7 @@ class _LoginState extends State<Login> {
     );
   }
 
+  // 에러 다이얼로그 표시 메서드
   void _showErrorDialog(String title, String message) {
     showDialog(
       context: context,
@@ -80,19 +86,19 @@ class _LoginState extends State<Login> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const SizedBox(height: 80.0),
-                _buildLogo(),
+                _buildLogo(),     // 앱 로고 표시
                 const SizedBox(height: 50.0),
-                _buildEmailField(),
+                _buildEmailField(),   // 이메일 입력 필드
                 const SizedBox(height: 20.0),
-                _buildPasswordField(),
+                _buildPasswordField(), // 비밀번호 입력 필드
                 const SizedBox(height: 20.0),
-                _buildLoginButton(),
+                _buildLoginButton(),    // 로그인 버튼 UI
                 const SizedBox(height: 20.0),
-                _buildSocialLoginButtons(),
+                _buildSocialLoginButtons(),   // 소셜 로그인 버튼
                 const SizedBox(height: 40.0),
-                _buildFindCredentialsButtons(),
+                _buildFindCredentialsButtons(), // 아이디/비밀번호 찾기 버튼
                 const SizedBox(height: 20.0),
-                _buildSignUpButton(),
+                _buildSignUpButton(),  // 회원가입 버튼 UI
                 const SizedBox(height: 40.0),
               ],
             ),
@@ -106,9 +112,9 @@ class _LoginState extends State<Login> {
     return ShaderMask(
       shaderCallback: (bounds) => const LinearGradient(
         colors: [
-          Color.fromARGB(224, 86, 98, 112),
-          Color.fromARGB(224, 165, 147, 224),
-          Color.fromARGB(224, 224, 227, 218),
+          AppColors.navy,
+          AppColors.blue,
+          AppColors.lavender,
         ],
       ).createShader(bounds),
       child: const Text(
@@ -122,12 +128,12 @@ class _LoginState extends State<Login> {
     );
   }
 
+  // 이메일 입력 필드
   Widget _buildEmailField() {
     return TextFormField(
       controller: _emailController,
       decoration: InputDecoration(
         labelText: '이메일',
-        labelStyle: const TextStyle(fontSize: 18, color: Colors.grey),
         filled: true,
         fillColor: Colors.grey.withOpacity(0.2),
         border: OutlineInputBorder(
@@ -136,24 +142,20 @@ class _LoginState extends State<Login> {
         ),
       ),
       validator: (value) {
-        if (value == null || value.isEmpty) {
-          return '이메일을 입력해주세요.';
-        }
-        if (!value.contains('@')) {
-          return '유효한 이메일 주소를 입력해주세요.';
-        }
+        if (value == null || value.isEmpty) return '이메일을 입력해주세요.';
+        if (!value.contains('@')) return '유효한 이메일 주소를 입력해주세요.';
         return null;
       },
     );
   }
 
+  // 비밀번호 입력 필드
   Widget _buildPasswordField() {
     return TextFormField(
       controller: _passwordController,
       obscureText: true,
       decoration: InputDecoration(
         labelText: '비밀번호',
-        labelStyle: const TextStyle(fontSize: 18, color: Colors.grey),
         filled: true,
         fillColor: Colors.grey.withOpacity(0.2),
         border: OutlineInputBorder(
@@ -162,17 +164,14 @@ class _LoginState extends State<Login> {
         ),
       ),
       validator: (value) {
-        if (value == null || value.isEmpty) {
-          return '비밀번호를 입력해주세요.';
-        }
-        if (value.length < 6) {
-          return '비밀번호는 6자 이상이어야 합니다.';
-        }
+        if (value == null || value.isEmpty) return '비밀번호을 입력해주세요.';
+        if (value.length < 6) return '비밀번호는 최소 6자 이상이어야 합니다.';
         return null;
       },
     );
   }
 
+  // 로그인 버튼 UI
   Widget _buildLoginButton() {
     return ElevatedButton(
       onPressed: _loginWithEmail,
@@ -180,6 +179,7 @@ class _LoginState extends State<Login> {
     );
   }
 
+  // 소셜 로그인 버튼 UI
   Widget _buildSocialLoginButtons() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -190,7 +190,7 @@ class _LoginState extends State<Login> {
             try {
               await AuthService().googleSocialLogin(context);
             } catch (error) {
-              _showErrorDialog('Google Sign-In Failed', error.toString());
+              _showErrorDialog('Google 로그인 실패', error.toString());
             }
           },
         ),
@@ -205,19 +205,7 @@ class _LoginState extends State<Login> {
     );
   }
 
-  void showErrorDialog(BuildContext context, String title, String message) {
-    showDialog(
-      context: context,
-      builder: (context) => Alert(
-        title: title,
-        content: message,
-        onConfirm: () {
-          // Add any additional logic here
-        },
-      ),
-    );
-  }
-
+  // 아이디 찾기/비밀번호 찾기 버튼
   Widget _buildFindCredentialsButtons() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -236,6 +224,7 @@ class _LoginState extends State<Login> {
     );
   }
 
+  // 계정이 없는 경우 회원가입 버튼
   Widget _buildSignUpButton() {
     return TextButton(
       onPressed: _signUpWithEmail,

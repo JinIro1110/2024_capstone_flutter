@@ -11,23 +11,24 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  Map<String, dynamic>? userData;
-  bool isLoading = true;
+  final FirebaseAuth _auth = FirebaseAuth.instance;  // Firebase 인증 인스턴스 생성
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;  // Firestore 인스턴스 생성
+  Map<String, dynamic>? userData;  // 사용자 데이터 저장
+  bool isLoading = true;  // 데이터 로딩 상태
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _loadUserData();  // 프로필 데이터 로드
   }
 
+  // 사용자 데이터 로드 함수
   Future<void> _loadUserData() async {
     try {
-      final User? currentUser = _auth.currentUser;
+      final User? currentUser = _auth.currentUser;  // 현재 로그인한 사용자 정보 가져오기
       if (currentUser != null) {
         final DocumentSnapshot doc =
-            await _firestore.collection('users').doc(currentUser.uid).get();
+            await _firestore.collection('users').doc(currentUser.uid).get();  // Firestore에서 사용자 데이터 가져오기
         if (doc.exists) {
           setState(() {
             userData = doc.data() as Map<String, dynamic>;
@@ -36,13 +37,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         }
       }
     } catch (e) {
-      print('Error loading user data: $e');
+      print('Error loading user data: $e');  // 오류 처리
       setState(() {
         isLoading = false;
       });
     }
   }
 
+  // 사용자 정보를 화면에 표시하는 위젋 빌더 함수
   Widget _buildInfoItem(String label, String value, IconData icon) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16.0),
@@ -62,6 +64,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
+            // 아이콘 표시 영역
             Container(
               padding: const EdgeInsets.all(8.0),
               decoration: BoxDecoration(
@@ -75,6 +78,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             const SizedBox(width: 16),
+
+            // 사용자 정보 레이블과 값 표시
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,6 +111,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
+      // 데이터 로딩 중일 때 프로그레스 인디케이터 표시
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(
@@ -121,7 +127,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         backgroundColor: AppColors.blue,
         elevation: 0,
         title: const Text(
-          '프로필 정보',
+          '프로필 정보',  // 앱 바 제목 설정
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -129,12 +135,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.of(context).pop(),  // 뒤로가기 버튼 기능
         ),
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
+            // 상단 프로필 영역 (배경 색상 설정)
             Container(
               width: double.infinity,
               color: AppColors.blue,
@@ -162,7 +169,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    userData?['name'] ?? '',
+                    userData?['name'] ?? '',  // 사용자 이름 표시
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -173,6 +180,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ],
               ),
             ),
+
+            // 사용자 정보를 나열하는 부분
             Container(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -186,10 +195,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         '',
                     Icons.calendar_today,
                   ),
-                  _buildInfoItem(
-                      '성별', userData?['gender'] ?? '', Icons.person_outline),
-                  _buildInfoItem(
-                      '키', '${userData?['height'] ?? ''}cm', Icons.height),
+                  _buildInfoItem('성별', userData?['gender'] ?? '', Icons.person_outline),
+                  _buildInfoItem('키', '${userData?['height'] ?? ''}cm', Icons.height),
                   _buildInfoItem(
                     '전화번호',
                     userData?['phone']?.toString().replaceAllMapped(

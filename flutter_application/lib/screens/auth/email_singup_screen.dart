@@ -13,14 +13,15 @@ class SignUp1 extends StatefulWidget {
 }
 
 class _SignUp1Content extends State<SignUp1> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();  // 폼 유효성 검사를 위한 키
+  final _emailController = TextEditingController();  // 이메일 입력 컨트롤러
+  final _passwordController = TextEditingController();  // 비밀번호 입력 컨트롤러
+  final _confirmPasswordController = TextEditingController();  // 비밀번호 확인 컨트롤러
 
   @override
   void initState() {
     super.initState();
+    // 이메일 매개변수가 전달되었다면 컨트롤러에 값 설정
     if (widget.email != null) {
       _emailController.text = widget.email!;
     }
@@ -28,6 +29,7 @@ class _SignUp1Content extends State<SignUp1> {
 
   @override
   void dispose() {
+    // 리소스 해제
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -43,7 +45,7 @@ class _SignUp1Content extends State<SignUp1> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.of(context).pop();
+            Navigator.of(context).pop();  // 뒤로 가기 버튼 기능
           },
         ),
         title: const Text('회원가입'),
@@ -54,10 +56,11 @@ class _SignUp1Content extends State<SignUp1> {
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Form(
-            key: _formKey,
+            key: _formKey,  // 폼 검사를 위한 키
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // 이메일 입력 필드 생성
                 _buildTextField(
                   controller: _emailController,
                   labelText: '이메일',
@@ -67,6 +70,8 @@ class _SignUp1Content extends State<SignUp1> {
                   validator: _validateEmail,
                 ),
                 const SizedBox(height: 20.0),
+
+                // 비밀번호 입력 필드 생성
                 _buildTextField(
                   controller: _passwordController,
                   labelText: '비밀번호',
@@ -76,6 +81,8 @@ class _SignUp1Content extends State<SignUp1> {
                   validator: _validatePassword,
                 ),
                 const SizedBox(height: 20.0),
+
+                // 비밀번호 확인 입력 필드 생성
                 _buildTextField(
                   controller: _confirmPasswordController,
                   labelText: '비밀번호 확인',
@@ -84,6 +91,8 @@ class _SignUp1Content extends State<SignUp1> {
                   validator: _validateConfirmPassword,
                 ),
                 const SizedBox(height: 20.0),
+
+                // 회원가입 버튼
                 ElevatedButton(
                   onPressed: () => _submitForm(context, signUpData),
                   child: const Text('다음'),
@@ -97,13 +106,14 @@ class _SignUp1Content extends State<SignUp1> {
     );
   }
 
+  // 폼 제출 함수
   void _submitForm(BuildContext context, SignUpData signUpData) {
     if (_formKey.currentState!.validate()) {
-      // 폼이 유효하면 SignUpData에 데이터를 저장
+      // 입력된 데이터를 SignUpData에 저장
       signUpData.setEmail(_emailController.text);
       signUpData.setPassword(_passwordController.text);
 
-      // SignUp2 페이지로 이동
+      // 다음 단계인 SignUp2 페이지로 이동
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -113,6 +123,7 @@ class _SignUp1Content extends State<SignUp1> {
     }
   }
 
+  // 이메일 유효성 검사를 위한 함수
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
       return '이메일을 입력해주세요.';
@@ -124,20 +135,22 @@ class _SignUp1Content extends State<SignUp1> {
     return null;
   }
 
+  // 비밀번호 유효성 검사를 위한 함수
   String? _validatePassword(String? value) {
-  if (value == null || value.isEmpty) {
-    return '비밀번호를 입력해주세요.';
+    if (value == null || value.isEmpty) {
+      return '비밀번호를 입력해주세요.';
+    }
+    if (value.length < 8) {
+      return '비밀번호는 8자 이상이어야 합니다.';
+    }
+    // 특수문자, 대문자, 숫자를 포함 여부 검토
+    if (!RegExp(r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~]).{8,}$').hasMatch(value)) {
+      return '비밀번호는 특수문자, 대문자, 숫자를 포함해야 합니다.';
+    }
+    return null;
   }
-  if (value.length < 8) {
-    return '비밀번호는 8자 이상이어야 합니다.';
-  }
-  // 추가: 특수문자, 대문자, 숫자 포함 여부 체크
-  if (!RegExp(r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~]).{8,}$').hasMatch(value)) {
-    return '비밀번호는 특수문자, 대문자, 숫자를 포함해야 합니다.';
-  }
-  return null;
-}
 
+  // 비밀번호 확인 검사를 위한 함수
   String? _validateConfirmPassword(String? value) {
     if (value == null || value.isEmpty) {
       return '비밀번호를 다시 입력해주세요.';
@@ -148,6 +161,7 @@ class _SignUp1Content extends State<SignUp1> {
     return null;
   }
 
+  // 텍스트 입력 필드를 빌드하는 함수
   Widget _buildTextField({
     required TextEditingController controller,
     required String labelText,

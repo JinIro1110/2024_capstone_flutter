@@ -9,16 +9,17 @@ class FindPassword extends StatefulWidget {
 }
 
 class _FindPasswordState extends State<FindPassword> {
-  final _emailController = TextEditingController();
-  final _nameController = TextEditingController();
-  final _birthController = TextEditingController();
+  final _emailController = TextEditingController(); // 이메일 입력 컨트롤러
+  final _nameController = TextEditingController();  // 이름 입력 컨트롤러
+  final _birthController = TextEditingController();  // 생년월일 입력 컨트롤러
 
+  // 비밀번호 재설정 이메일 전송 함수
   Future<void> _findUserPassword() async {
     final email = _emailController.text;
     final name = _nameController.text;
     final birth = _birthController.text;
 
-    // Call the AuthService to find the user's password reset email
+    // AuthService 메서드를 호출하여 비밀번호 재설정을 위한 이메일 전송
     final success = await AuthService().findUserPassword(email, name, birth);
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -38,7 +39,7 @@ class _FindPasswordState extends State<FindPassword> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.of(context).pop(); // 뒤로 가기
+            Navigator.of(context).pop(); // 뒤로 가기 버튼
           },
         ),
         title: const Text('비밀번호 찾기'),
@@ -51,23 +52,25 @@ class _FindPasswordState extends State<FindPassword> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 20.0),
-                const Icon(Icons.lock_reset, size: 35.0),
+                const Icon(Icons.lock_reset, size: 35.0), // 비밀번호 아이콘
                 const SizedBox(height: 10.0),
+                
+                // 제목 텍스트
                 const Text(
                   '비밀번호를 잊어버리셨나요?',
                   style: TextStyle(fontSize: 22.0, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 5.0),
                 const Text('이메일로 비밀번호 재설정 링크를 보내드립니다.'),
+
                 const SizedBox(height: 30.0),
+
+                // 이메일 입력 필드
                 TextField(
                   controller: _emailController,
                   decoration: InputDecoration(
                     labelText: '이메일',
-                    labelStyle: const TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey,
-                    ),
+                    labelStyle: const TextStyle(fontSize: 18, color: Colors.grey),
                     filled: true,
                     fillColor: Colors.grey.withOpacity(0.2),
                     helperText: '이메일을 입력해주세요.',
@@ -77,15 +80,15 @@ class _FindPasswordState extends State<FindPassword> {
                     ),
                   ),
                 ),
+                
                 const SizedBox(height: 20.0),
+
+                // 이름 입력 필드
                 TextField(
                   controller: _nameController,
                   decoration: InputDecoration(
                     labelText: '이름',
-                    labelStyle: const TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey,
-                    ),
+                    labelStyle: const TextStyle(fontSize: 18, color: Colors.grey),
                     filled: true,
                     fillColor: Colors.grey.withOpacity(0.2),
                     helperText: '이름을 입력해주세요.',
@@ -95,15 +98,15 @@ class _FindPasswordState extends State<FindPassword> {
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 20.0),
+
+                // 생년월일 입력 필드
                 TextField(
                   controller: _birthController,
                   decoration: InputDecoration(
                     labelText: '생년월일',
-                    labelStyle: const TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey,
-                    ),
+                    labelStyle: const TextStyle(fontSize: 18, color: Colors.grey),
                     filled: true,
                     fillColor: Colors.grey.withOpacity(0.2),
                     helperText: '생년월일을 입력해주세요 (예: 1990-01-01)',
@@ -113,7 +116,10 @@ class _FindPasswordState extends State<FindPassword> {
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 30.0),
+
+                // 비밀번호 재설정 버튼
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(

@@ -46,7 +46,7 @@ class _SplashScreenState extends State<Splash> {
         MaterialPageRoute(builder: (_) => const Login())
       );
     } else {
-      // Preload data before navigation
+      // 미리 데이터 가져오기
       final preloadedData = await _preloadData(user.uid);
       
       if (!mounted) return;

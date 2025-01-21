@@ -12,6 +12,7 @@ import 'package:flutter_application_1/auth/login_logic.dart';
 import 'package:flutter_application_1/screens/closet/closet_screen.dart';
 import 'package:flutter_application_1/screens/shop/mall.dart';
 
+// 메인 페이지
 class MyHomePage extends StatefulWidget {
   final List<ClosetItem> preloadedItems;
   final DocumentSnapshot? preloadedLastDocument;
@@ -40,7 +41,6 @@ class _MyHomePageState extends State<MyHomePage> {
     lastDocument = widget.preloadedLastDocument;
   }
 
-  // Helper functions
   Widget _buildDrawerItem({
     required IconData icon,
     required String title,
@@ -62,7 +62,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
-
+  // 메뉴 목록
   List<Widget> _buildDrawerItems(BuildContext context) {
     return [
       _buildDrawerHeader(),
@@ -79,11 +79,13 @@ class _MyHomePageState extends State<MyHomePage> {
           );
         },
       ),
+      // 스타일 기반 추천 옷
       _buildDrawerItem(
         icon: Icons.style,
         title: '옷 추천',
         onTap: () => _handleStyleSelection(context),
       ),
+      // 사용자 신체 이미지 촬영
       _buildDrawerItem(
         icon: Icons.camera,
         title: '모델 생성',
@@ -96,10 +98,9 @@ class _MyHomePageState extends State<MyHomePage> {
             return;
           }
 
-          // Close drawer if it's open
           Navigator.pop(context);
 
-          // Call camera service
+          // 카메라 키기	
           await _cameraService.takeAndUploadPhoto(
             uid: user.uid,
             context: context,

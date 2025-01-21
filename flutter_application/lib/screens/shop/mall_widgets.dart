@@ -6,10 +6,10 @@ import 'package:flutter_application_1/utils/constants.dart';
 import 'package:flutter_application_1/widgets/mall_item_card.dart';  // Filter 관련 import 추가
 
 class MallWidgets {
-  // 기존의 buildCategoryFilters 메소드와 동일하게 필터를 처리
+  // 카테고리 필터
   static Widget buildCategoryFilters({
-    required List<String> categories,
-    required String selectedCategory,
+    required List<String> categories, // 목록
+    required String selectedCategory, // 선택된 카테고리
     required Function(String) onCategorySelected,
   }) {
     return SizedBox(
@@ -58,7 +58,7 @@ class MallWidgets {
       ),
     );
   }
-
+  // 목록 격자 표시
   static Widget buildGridView({
     required List<MallItem> items,
     required bool isLoading,
@@ -96,7 +96,7 @@ class MallWidgets {
     );
   }
 }
-
+// 로딩 표시
 class _LoadingIndicator extends StatelessWidget {
   const _LoadingIndicator({Key? key}) : super(key: key);
 

@@ -1,11 +1,9 @@
-// filter.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/utils/constants.dart';
 
 // Enum으로 카테고리와 스타일 정의
 enum MainCategory { all, top, bottom }
-enum Style { all, casual, street, americana, minimal }
+enum Style { all, casual, sporty, street }
 
 class FilterOptions {
   MainCategory? mainCategory;
@@ -58,9 +56,8 @@ class _AdvancedFilterWidgetState extends State<AdvancedFilterWidget> {
     switch (style) {
       case Style.all: return '전체';
       case Style.casual: return '캐주얼';
-      case Style.street: return '스트릿';
-      case Style.americana: return '아메카지';
-      case Style.minimal: return '미니멀';
+      case Style.sporty: return '스포티';
+      case Style.street: return '스트릿/빈티지';
     }
   }
 
